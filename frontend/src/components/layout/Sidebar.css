@@ -1,0 +1,406 @@
+/* Sidebar Component Styles */
+
+/* Sidebar Navigation Container */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+/* Single Link Items (Dashboard, E-Way Bill, Settings) */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  color: #b0bec5;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.25s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-left-color: #3498db;
+}
+
+.sidebar-link.active {
+  color: #ffffff;
+  background: rgba(52, 152, 219, 0.15);
+  border-left-color: #3498db;
+}
+
+/* Sidebar Icon */
+.sidebar-icon {
+  font-size: 18px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Sidebar Label */
+.sidebar-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Expandable Group Container */
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Group Header (Clickable to expand/collapse) */
+.sidebar-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  color: #b0bec5;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-group-header:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Group header with navigable link */
+.sidebar-group-header.has-link {
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Parent Link (Stock, Reports) - clickable for navigation */
+.sidebar-parent-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 14px 20px;
+  color: #b0bec5;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.25s ease;
+  flex: 1;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-parent-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-left-color: #3498db;
+}
+
+.sidebar-parent-link.active {
+  color: #ffffff;
+  background: rgba(52, 152, 219, 0.15);
+  border-left-color: #3498db;
+}
+
+/* Expand Button (Arrow) - for Stock and Reports */
+.sidebar-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b0bec5;
+  transition: all 0.25s ease;
+}
+
+.sidebar-expand-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Arrow Icon */
+.sidebar-arrow {
+  font-size: 16px;
+  transition: transform 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: inherit;
+}
+
+/* Rotate arrow when expanded */
+.sidebar-group-header.expanded .sidebar-arrow {
+  transform: rotate(90deg);
+}
+
+/* For headers without has-link class */
+.sidebar-group-header:not(.has-link) .sidebar-arrow {
+  margin-left: auto;
+}
+
+/* Submenu Container */
+.sidebar-submenu {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-out, opacity 0.25s ease;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-submenu.open {
+  max-height: 500px;
+  opacity: 1;
+  transition: max-height 0.4s ease-in, opacity 0.25s ease;
+}
+
+/* Submenu Links (Child Items) */
+.sidebar-sublink {
+  display: block;
+  padding: 12px 20px 12px 56px;
+  color: #90a4ae;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-sublink:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+  padding-left: 60px;
+}
+
+.sidebar-sublink.active {
+  color: #ffffff;
+  background: rgba(52, 152, 219, 0.12);
+  border-left-color: #3498db;
+}
+
+/* Sales Sub-group (nested under Transactions) */
+.sidebar-subgroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-subgroup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 56px;
+  color: #90a4ae;
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-subgroup-header:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-subgroup-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Rotate arrow for sub-group expansion */
+.sidebar-subgroup-header.expanded .sidebar-arrow {
+  transform: rotate(90deg);
+}
+
+/* Sub-group Menu (Quotations, Invoices) */
+.sidebar-subgroup-menu {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-out, opacity 0.25s ease;
+  opacity: 0;
+}
+
+.sidebar-subgroup-menu.open {
+  max-height: 500px;
+  opacity: 1;
+  transition: max-height 0.4s ease-in, opacity 0.25s ease;
+}
+
+/* Links inside sub-group menu (Quotations, Invoices) */
+.sidebar-subgroup-menu .sidebar-sublink {
+  padding: 10px 20px 10px 76px;
+  font-size: 13px;
+}
+
+.sidebar-subgroup-menu .sidebar-sublink:hover {
+  padding-left: 80px;
+}
+
+/* Collapsed (narrow) sidebar behavior */
+.sidebar.closed .sidebar-nav {
+  align-items: center;
+  padding: 12px 0;
+}
+
+.sidebar.closed .sidebar-link,
+.sidebar.closed .sidebar-group-header:not(.has-link) {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  border-left: none;
+  gap: 6px;
+}
+
+/* For groups with a parent link (Stock, Reports), style the link itself */
+.sidebar.closed .sidebar-parent-link {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  border-left: none;
+  gap: 6px;
+}
+
+.sidebar.closed .sidebar-group-header.has-link {
+  padding: 0;
+}
+
+.sidebar.closed .sidebar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar.closed .sidebar-label {
+  display: block;
+  font-size: 10px;
+  white-space: normal;
+  text-align: center;
+  max-width: 100%;
+}
+
+.sidebar.closed .sidebar-arrow,
+.sidebar.closed .sidebar-submenu,
+.sidebar.closed .sidebar-expand-btn {
+  display: none;
+}
+
+/* Scrollbar Styling */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Focus States for Accessibility */
+.sidebar-link:focus,
+.sidebar-parent-link:focus,
+.sidebar-sublink:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.5);
+}
+
+.sidebar-group-header:focus,
+.sidebar-expand-btn:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.5);
+}
+
+/* Transition for smooth animations */
+.sidebar-group-header,
+.sidebar-link,
+.sidebar-parent-link,
+.sidebar-sublink {
+  position: relative;
+}
+
+/* Active indicator line */
+.sidebar-link.active::after,
+.sidebar-parent-link.active::after,
+.sidebar-sublink.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #3498db;
+  border-radius: 2px 0 0 2px;
+}
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #b0bec5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.toggle-icon {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

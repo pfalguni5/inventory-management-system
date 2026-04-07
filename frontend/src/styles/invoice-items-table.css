@@ -1,0 +1,315 @@
+/* Invoice Items Section */
+.invoice-items-section {
+  margin: 20px 0;
+}
+
+.invoice-items-section h4 {
+  margin: 16px 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Items Table Wrapper */
+.items-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+/* Items Table */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  table-layout: fixed;
+}
+
+.items-table thead {
+  background: #f3f4f6;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.items-table th {
+  padding: 12px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.items-table th.col-delete {
+  text-align: center;
+  padding: 12px 6px;
+  box-sizing: border-box;
+}
+
+.items-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.15s;
+}
+
+.items-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.items-table tbody tr.blank-row {
+  background: #f9fafb;
+  opacity: 0.7;
+}
+
+.items-table td {
+  padding: 10px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+/* Column Alignment */
+.items-table th:nth-child(1) {
+  width: 10%;
+}
+
+.items-table th:nth-child(2) {
+  width: 28%;
+}
+
+.items-table th:nth-child(3) {
+  width: 8%;
+}
+
+.items-table th:nth-child(4) {
+  width: 8%;
+}
+
+.items-table th:nth-child(5) {
+  width: 10%;
+}
+
+.items-table th:nth-child(6) {
+  width: 8%;
+}
+
+.items-table th:nth-child(7) {
+  width: 10%;
+  text-align: right;
+}
+
+.items-table th:nth-child(8) {
+  width: 18%;
+}
+
+.items-table td:nth-child(1),
+.items-table td:nth-child(2),
+.items-table td:nth-child(3),
+.items-table td:nth-child(4),
+.items-table td:nth-child(5),
+.items-table td:nth-child(6),
+.items-table td:nth-child(7),
+.items-table td:nth-child(8) {
+  word-break: break-word;
+}
+
+/* Table Input Styling */
+.table-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.table-input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Amount Cell */
+.amount-cell {
+  text-align: right;
+  font-weight: 500;
+  color: #1f2937;
+  padding: 10px;
+}
+
+/* Delete Button */
+.col-delete {
+  width: 11%;
+  padding: 8px 4px !important;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.btn-delete-item {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+}
+
+.btn-delete-item:hover {
+  color: #dc3545;
+  background: #ffe0e0;
+}
+
+/* Items Actions */
+.items-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-add-row,
+.btn-bulk-add {
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-row:hover,
+.btn-bulk-add:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+/* Items Total */
+.items-total {
+  display: flex;
+  justify-content: flex-end;
+  margin: 16px 0;
+}
+
+.items-total h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .items-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .items-table {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 768px) {
+  .invoice-items-section h4 {
+    font-size: 14px;
+    margin: 12px 0 10px 0;
+  }
+
+  .items-table {
+    font-size: 12px;
+    min-width: 1000px;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 8px 6px;
+  }
+
+  .table-input {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .items-actions {
+    gap: 8px;
+  }
+
+  .btn-add-row,
+  .btn-bulk-add {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .amount-cell {
+    font-size: 12px;
+  }
+
+  .btn-delete-item {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .items-table {
+    font-size: 11px;
+    min-width: 100%;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 6px 4px;
+  }
+
+  .table-input {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .items-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btn-add-row,
+  .btn-bulk-add {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .amount-cell {
+    font-size: 11px;
+  }
+
+  .btn-delete-item {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+}
+

@@ -1,0 +1,169 @@
+/* AppIcon Component Styles */
+
+/* Base icon styling */
+.app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* When used with text labels - adds spacing */
+.app-icon.with-label {
+  margin-right: 8px;
+}
+
+/* Icon sizes for consistency */
+.app-icon.icon-xs {
+  font-size: 12px;
+}
+
+.app-icon.icon-sm {
+  font-size: 14px;
+}
+
+.app-icon.icon-md {
+  font-size: 16px;
+}
+
+.app-icon.icon-lg {
+  font-size: 20px;
+}
+
+.app-icon.icon-xl {
+  font-size: 24px;
+}
+
+.app-icon.icon-2xl {
+  font-size: 32px;
+}
+
+/* Sidebar specific icon styling */
+.sidebar-icon .app-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 16px;
+}
+
+/* Button icon styling */
+.btn-icon .app-icon,
+button .app-icon {
+  margin-right: 6px;
+}
+
+/* Stat card icon styling */
+.stat-icon .app-icon {
+  font-size: 24px;
+}
+
+/* Summary card icon styling */
+.summary-icon .app-icon {
+  font-size: 28px;
+}
+
+/* Metric card icon styling */
+.metric-icon .app-icon {
+  font-size: 24px;
+}
+
+/* Header icon styling */
+h1 .app-icon,
+h2 .app-icon,
+h3 .app-icon {
+  margin-right: 10px;
+}
+
+/* Badge icon styling */
+.badge .app-icon,
+[class*="-badge"] .app-icon {
+  margin-right: 6px;
+}
+
+/* Tab icon styling */
+.tab .app-icon,
+[class*="-tab"] .app-icon {
+  margin-right: 6px;
+}
+
+/* Export button specific styling */
+.export-btn .app-icon,
+.export-button .app-icon {
+  margin-right: 6px;
+}
+
+/* Filter section icon */
+.filter-title .app-icon {
+  margin-right: 8px;
+}
+
+/* Info section icon */
+.info-title .app-icon {
+  margin-right: 8px;
+}
+
+/* Navbar specific styling */
+.navbar .app-icon {
+  font-size: 20px;
+}
+
+.brand-icon .app-icon {
+  font-size: 24px;
+}
+
+.icon-badge .app-icon {
+  font-size: 22px;
+}
+
+.profile-icon .app-icon {
+  font-size: 18px;
+  width: 100%;
+  text-align: center;
+}
+
+/* Section header icons */
+.section-title .app-icon,
+.reports-section-title .app-icon {
+  margin-right: 10px;
+}
+
+/* Card icons */
+.card-icon .app-icon,
+.report-card-icon .app-icon {
+  font-size: 32px;
+}
+
+/* Color variations for different contexts */
+.app-icon.icon-primary {
+  color: #3498db;
+}
+
+.app-icon.icon-success {
+  color: #27ae60;
+}
+
+.app-icon.icon-warning {
+  color: #f39c12;
+}
+
+.app-icon.icon-danger {
+  color: #e74c3c;
+}
+
+.app-icon.icon-info {
+  color: #17a2b8;
+}
+
+.app-icon.icon-muted {
+  color: #6c757d;
+}
+
+/* Hover effect for clickable icons */
+.app-icon.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.app-icon.clickable:hover {
+  transform: scale(1.1);
+}

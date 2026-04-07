@@ -1,0 +1,204 @@
+/* REPORTS CONTAINER & HEADER */
+.reports-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.reports-header {
+  margin-bottom: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.reports-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 8px;
+}
+
+.reports-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* SHARE TO CA BUTTON */
+.btn-share-ca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-share-ca:hover {
+  background-color: #135ba1;
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-share-ca:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.28);
+}
+
+/* SECTION STYLING */
+.reports-section {
+  margin-bottom: 48px;
+}
+
+.reports-section-header {
+  margin-bottom: 24px;
+}
+
+.reports-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 6px;
+}
+
+.reports-section-desc {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* GRID LAYOUT */
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* REPORT CARD */
+.report-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 24px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #e0e0e0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.report-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.report-card.gst-report::before {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.report-card.business-report::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.report-card:hover::before {
+  transform: scaleX(1);
+}
+
+.report-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  border-color: #d0d0d0;
+}
+
+.report-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 8px;
+}
+
+.report-description {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 16px;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.report-arrow {
+  font-size: 18px;
+  color: #999;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.report-card:hover .report-arrow {
+  color: #2563eb;
+  transform: translateX(4px);
+}
+
+.report-card.gst-report:hover .report-arrow {
+  color: #d97706;
+}
+
+.report-card.business-report:hover .report-arrow {
+  color: #059669;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .reports-container {
+    padding: 20px 16px;
+  }
+
+  .reports-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 32px;
+  }
+
+  .reports-title {
+    font-size: 24px;
+  }
+
+  .btn-share-ca {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-section {
+    margin-bottom: 32px;
+  }
+}

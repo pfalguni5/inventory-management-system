@@ -1,0 +1,518 @@
+/* Dashboard layout */
+.dash {
+  padding: 22px;
+  max-width: 1200px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.dashHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.dashTitle {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashSubTitle {
+  margin: 6px 0 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.dashControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashSelectLabel {
+  font-size: 12px;
+  color: #475569;
+  display: grid;
+  gap: 6px;
+}
+
+.dashSelect {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 0 12px;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 600;
+  outline: none;
+}
+
+.dashSelect:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* KPI cards */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.kpiCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 14px;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+}
+
+.kpiTitle {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.kpiValue {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.kpiHint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 2-col grid */
+.dashGrid2 {
+  display: grid;
+  grid-template-columns: 1.35fr 0.65fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Generic card */
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.cardHeader {
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cardSubtitle {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.cardBody {
+  padding: 12px 16px 16px 16px;
+}
+
+/* Link button */
+.btnLink {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 12px;
+  height: 36px;
+  cursor: pointer;
+}
+.btnLink:hover {
+  background: #f8fafc;
+}
+
+/* Quick actions */
+.quickActions {
+  padding: 12px 16px 16px 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.quickAction {
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.quickAction:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.quickAction:active {
+  transform: translateY(1px);
+}
+
+.quickActionTitle {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.quickActionDesc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Mini bar chart */
+.miniChart {
+  padding: 24px 16px 16px 16px;
+  position: relative;
+  height: 320px;
+}
+
+.miniChartCol {
+  height: 170px;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 8px;
+}
+
+.miniChart {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.miniChartBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  height: 200px;
+  padding: 6px 6px 0 6px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #f1f5f9;
+}
+
+.bar {
+  width: 14px;
+  border-radius: 10px 10px 4px 4px;
+  transition: height 0.3s ease;
+}
+
+.barSales {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.barPurch {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+  opacity: 0.95;
+}
+
+.miniChartLabel {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.miniChartLegend {
+  grid-column: 1 / -1;
+  margin-top: 32px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.legendItem {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legendDot.sales {
+  background: #1d4ed8;
+}
+.legendDot.purch {
+  background: #7c3aed;
+}
+
+/* Tabs */
+.tabs {
+  display: inline-flex;
+  padding: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
+}
+
+.tab:hover {
+  background: #e8eef7;
+  color: #0f172a;
+}
+
+.tab:focus,
+.tab:active {
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+}
+
+
+/* Timeline (Zoho-ish) */
+.timeline {
+  padding: 8px 2px 0 2px;
+  display: grid;
+  gap: 10px;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.timelineIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  position: relative;
+  margin-top: 2px;
+}
+
+.timelineIcon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 28px;
+  background: #e2e8f0;
+}
+
+.timelineItem:last-child .timelineIcon::after {
+  display: none;
+}
+
+.timelineContent {
+  padding: 8px 10px;
+  border: 1px solid #f1f5f9;
+  background: #fff;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.timelineContent:hover,
+.timelineContent:focus {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.timelineTitle {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.timelineMeta {
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 6px;
+  font-size: 13px;
+}
+
+.timelineTime {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Timeline icon color variants */
+.tItem { background: rgba(37, 99, 235, 0.15); }
+.tParty { background: rgba(14, 165, 233, 0.15); }
+.tSale { background: rgba(16, 185, 129, 0.16); }
+.tPurchase { background: rgba(168, 85, 247, 0.16); }
+.tStock { background: rgba(245, 158, 11, 0.18); }
+.tReport { background: rgba(100, 116, 139, 0.20); }
+
+/* Pending actions */
+.pendingList {
+  display: grid;
+  gap: 10px;
+}
+
+.pendingItem {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.pendingItem:hover,
+.pendingItem:focus {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.pendingBadge {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.pendingBadge.warning {
+  background: rgba(245, 158, 11, 0.20);
+  color: #92400e;
+}
+.pendingBadge.info {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.pendingTitle {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.pendingMeta {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btnSmall {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #3b82f6;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnSmall:hover {
+  background: #bfdbfe;
+}
+
+/* Activity Content Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.activityContent {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .kpiRow {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+  .dashGrid2 {
+    grid-template-columns: 1fr;
+  }
+  .miniChart {
+    height: 240px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dash {
+    padding: 16px;
+  }
+  .dashHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tabs {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tab {
+    width: 50%;
+    text-align: center;
+  }
+}
