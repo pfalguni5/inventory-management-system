@@ -68,18 +68,18 @@ function Login() {
 
       localStorage.setItem("token", token);
 
-      // ✅ Step 2: Fetch business
-      const res = await fetch("http://localhost:8080/api/settings", {
+      // ✅ Step 2: Fetch businesses (check if user has any businesses)
+      const businessRes = await fetch("http://localhost:8080/api/business/my", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       // ✅ Step 3: Handle response safely
-      let business = null;
+      let businesses = [];
 
-      if (res.ok) {
-        business = await res.json();
+      if (businessRes.ok) {
+        businesses = await businessRes.json();
       }
 
       // ✅ Step 4: Store user info
@@ -92,8 +92,8 @@ function Login() {
       localStorage.setItem("userName", nameFromEmail);
 
       // ✅ Step 5: Routing logic (VERY IMPORTANT)
-      if (business && business.id) {
-        localStorage.setItem("businessId", business.id);
+      if (businesses && businesses.length > 0) {
+        localStorage.setItem("businessId", businesses[0].id);
         navigate("/app"); // user already has business
       } else {
         localStorage.removeItem("businessId");
