@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import AppIcon from "../../components/common/AppIcon";
-import { getAllItems } from "../../services/itemService";
-import { getStockByItem, adjustStock } from "../../services/StockService";
+import { getAllItems, updateItem } from "../../services/itemService";
 import "../../styles/opening-stock.css";
 
 function OpeningStock() {
@@ -22,29 +21,20 @@ function OpeningStock() {
 
         // Fetch all items
         const allItemsResponse = await getAllItems();
-        const allItems = allItemsResponse.data || [];
+        const allItems = (allItemsResponse.data || []).filter(item => item.type?.toLowerCase() === 'goods');
 
         setItems(allItems);
 
-        // For each item, check if opening stock is already set
+        // Check opening stock status from item.openingStock field
         const stockStatusMap = {};
         const formDataMap = {};
 
         for (const item of allItems) {
-          try {
-            const stockResponse = await getStockByItem(item.id);
-            // Only consider stock as "Already Set" if quantity is greater than 0
-            if (stockResponse && stockResponse.quantity > 0) {
-              // Opening stock is already set
-              stockStatusMap[item.id] = true;
-              formDataMap[item.id] = stockResponse.quantity.toString();
-            } else {
-              // Opening stock not set (quantity is 0 or null)
-              stockStatusMap[item.id] = false;
-              formDataMap[item.id] = "";
-            }
-          } catch (err) {
-            // Stock record doesn't exist yet
+          // Check if opening stock is already set (openingStock > 0)
+          if (item.openingStock && item.openingStock > 0) {
+            stockStatusMap[item.id] = true;
+            formDataMap[item.id] = item.openingStock.toString();
+          } else {
             stockStatusMap[item.id] = false;
             formDataMap[item.id] = "";
           }
@@ -87,10 +77,10 @@ function OpeningStock() {
             return;
           }
 
-          await adjustStock({
-            itemId: item.id,
-            newQuantity: quantity,
-            reason: "Opening Stock",
+          // Update item with opening stock value
+          await updateItem(item.id, {
+            ...item,
+            openingStock: quantity,
           });
         }
       }

@@ -51,13 +51,18 @@ public class QuotationServiceImpl implements QuotationService {
 
         validateParty(businessId, request.getPartyId());
 
+        // Use quotation number from request if provided, otherwise generate one
+        String quotationNumber = (request.getQuotationNumber() != null && !request.getQuotationNumber().isEmpty())
+                ? request.getQuotationNumber()
+                : generateQuotationNumber();
+
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal totalItemDiscount = BigDecimal.ZERO;
         BigDecimal taxTotal = BigDecimal.ZERO;
 
         Quotation quotation = Quotation.builder()
                 .businessId(businessId)
-                .quotationNumber(generateQuotationNumber())
+                .quotationNumber(quotationNumber)
                 .partyId(request.getPartyId())
                 .quotationDate(request.getQuotationDate())
                 .validUntil(request.getValidUntil())

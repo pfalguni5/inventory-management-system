@@ -36,9 +36,7 @@ function PurchaseEntry() {
   });
   const [setSupplierErrors] = useState({});
 
-  const [manualInvoiceNumber, setManualInvoiceNumber] = useState("");
   const [autoInvoiceNumber, setAutoInvoiceNumber] = useState("");
-  const [manualInvoiceMode, setManualInvoiceMode] = useState(false);
   
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState("");
@@ -322,7 +320,7 @@ function PurchaseEntry() {
 
     const payload = {
         partyId: Number(selectedSupplier),
-        billNumber: manualInvoiceMode ? manualInvoiceNumber : autoInvoiceNumber,
+        billNumber: autoInvoiceNumber,
         billDate: invoiceDate,
         dueDate: dueDate || null,
         paymentType: paymentType,
@@ -389,32 +387,14 @@ function PurchaseEntry() {
       <div className="form-group">
         <label>Purchase Invoice Number *</label>
         <div className="invoice-number-group">
-          {!manualInvoiceMode ? (
-            <div className="auto-number-display">
-              <input
-                type="text"
-                value={autoInvoiceNumber}
-                disabled
-                className="form-input"
-              />
-            </div>
-          ) : (
+          <div className="auto-number-display">
             <input
               type="text"
-              value={manualInvoiceNumber}
-              onChange={(e) => setManualInvoiceNumber(e.target.value)}
-              placeholder="Enter invoice number"
+              value={autoInvoiceNumber}
+              disabled
               className="form-input"
             />
-          )}
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={manualInvoiceMode}
-              onChange={(e) => setManualInvoiceMode(e.target.checked)}
-            />
-            <span className="checkbox-text">Manual</span>
-          </label>
+          </div>
         </div>
       </div>
 

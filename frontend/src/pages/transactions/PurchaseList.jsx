@@ -59,7 +59,7 @@ function PurchaseList() {
     const statusStyles = {
       paid: { bg: "#d4edda", color: "#155724", text: "Paid" },
       pending: { bg: "#fff3cd", color: "#856404", text: "Pending" },
-      partial: { bg: "#fff3cd", color: "#856404", text: "Partial" },
+      partial: { bg: "#d1ecf1", color: "#0c5460", text: "Partial" },
       cancelled: { bg: "#f8d7da", color: "#721c24", text: "Cancelled" },
     };
     return statusStyles[status] || statusStyles.pending;

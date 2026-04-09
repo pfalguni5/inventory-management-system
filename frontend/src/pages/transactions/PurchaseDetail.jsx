@@ -27,6 +27,41 @@ function PurchaseDetail() {
         const data = purchaseRes.data;
         const supplier = partyRes.data.find(p => p.id === data.partyId);
         
+        // Transform items with calculated amounts
+        const transformedItems = data.items.map(item => {
+          const masterItem = itemRes.data.find(i => i.id === item.itemId);
+          
+          const qty = item.quantity || 0;
+          const rate = item.rate || 0;
+          const gstRate = item.gstRate || 0;
+          
+          // Calculate item amount: (qty * rate) + GST
+          const itemSubtotal = qty * rate;
+          const itemGst = itemSubtotal * (gstRate / 100);
+          const itemTotal = itemSubtotal + itemGst;
+          
+          return {
+            id: item.id,
+            name: masterItem ? masterItem.name : `Item #${item.itemId}`,
+            unit: item.unit,
+            qty: qty,
+            rate: rate,
+            gstRate: gstRate,
+            total: itemTotal
+          };
+        });
+        
+        // Calculate summary totals
+        const subtotal = transformedItems.reduce(
+          (sum, item) => sum + (item.qty * item.rate),
+          0
+        );
+        const totalGst = transformedItems.reduce(
+          (sum, item) => sum + (item.qty * item.rate * (item.gstRate / 100)),
+          0
+        );
+        const grandTotal = subtotal + totalGst;
+        
         const transformed = {
           id: data.id,
           invoiceNumber: data.billNumber,
@@ -37,21 +72,10 @@ function PurchaseDetail() {
           paymentType: data.paymentType,
           amountPaid: data.amountPaid,
           balance: data.balance,
-          subtotal: data.subtotal,
-          totalTax: data.totalTax,
-          grandTotal: data.grandTotal,
-          items: data.items.map(item => {
-            const masterItem = itemRes.data.find(i => i.id === item.itemId);
-            return {
-              id: item.id,
-              name: masterItem ? masterItem.name : `Item #${item.itemId}`,
-              unit: item.unit,
-              qty: item.quantity,
-              rate: item.rate,
-              gstRate: item.gstRate,
-              total: item.total
-            };
-          })
+          subtotal: subtotal,
+          totalTax: totalGst,
+          grandTotal: grandTotal,
+          items: transformedItems
         };
 
         setPurchase(transformed);
@@ -89,7 +113,7 @@ function PurchaseDetail() {
     const statusStyles = {
       paid: { bg: "#d4edda", color: "#155724", text: "Paid" },
       pending: { bg: "#fff3cd", color: "#856404", text: "Pending" },
-      partial: { bg: "#fff3cd", color: "#856404", text: "Partial" },
+      partial: { bg: "#d1ecf1", color: "#0c5460", text: "Partial" },
       cancelled: { bg: "#f8d7da", color: "#721c24", text: "Cancelled" },
     };
     return statusStyles[status] || statusStyles.pending;

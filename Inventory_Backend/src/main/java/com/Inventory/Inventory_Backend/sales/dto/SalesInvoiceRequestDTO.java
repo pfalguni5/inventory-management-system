@@ -26,6 +26,8 @@ public class SalesInvoiceRequestDTO {
     // INVOICE INFO
     // ==========================================================
 
+    private String invoiceNumber;
+
     @NotNull(message = "Invoice date is required")
     private LocalDate invoiceDate;
 

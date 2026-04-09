@@ -45,7 +45,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         validatePartyExists(businessId, request.getPartyId());
 
-        String invoiceNumber = generateInvoiceNumber(businessId);
+        // Use invoice number from request if provided, otherwise generate one
+        String invoiceNumber = (request.getInvoiceNumber() != null && !request.getInvoiceNumber().isEmpty())
+                ? request.getInvoiceNumber()
+                : generateInvoiceNumber(businessId);
 
         SalesInvoice invoice = SalesInvoice.builder()
                 .businessId(businessId)
@@ -59,6 +62,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         processItems(invoice, request.getItems(), request.isInterState(), businessId);
         calculateInvoiceTotals(invoice);
+        updateInvoiceStatus(invoice);
 
         SalesInvoice saved = invoiceRepository.save(invoice);
 
@@ -111,6 +115,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         restoreStockForItems(invoice.getItems(), businessId);
         invoice.getItems().clear();
+        invoiceRepository.flush(); // Force JPA to execute the delete immediately
 
         invoice.setPartyId(request.getPartyId());
         invoice.setInvoiceDate(request.getInvoiceDate());
@@ -120,6 +125,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         processItems(invoice, request.getItems(), request.isInterState(), businessId);
         calculateInvoiceTotals(invoice);
+        updateInvoiceStatus(invoice);
 
         SalesInvoice saved = invoiceRepository.save(invoice);
 
@@ -267,13 +273,61 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
     private void calculateInvoiceTotals(SalesInvoice invoice) {
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalDiscount = BigDecimal.ZERO;
+        BigDecimal totalTax = BigDecimal.ZERO;
 
         for (SalesInvoiceItem item : invoice.getItems()) {
-            total = total.add(item.getQuantity().multiply(item.getRate()));
+            // Subtotal for this item
+            BigDecimal itemSubtotal = item.getQuantity().multiply(item.getRate());
+            subtotal = subtotal.add(itemSubtotal);
+
+            // Discount for this item
+            BigDecimal itemDiscount = safe(item.getDiscount());
+            totalDiscount = totalDiscount.add(itemDiscount);
+
+            // Taxable base (after discount)
+            BigDecimal taxableBase = itemSubtotal.subtract(itemDiscount);
+
+            // Tax for this item
+            BigDecimal itemTax = taxableBase.multiply(safe(item.getGstRate())).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            totalTax = totalTax.add(itemTax);
+
+            // ===== SET ITEM-LEVEL TOTALS =====
+            // For intra-state: CGST + SGST = GST%, For inter-state: IGST
+            // For simplicity, storing total as: taxableBase + itemTax
+            item.setTotal(taxableBase.add(itemTax));
         }
 
-        invoice.setGrandTotal(total);
-        invoice.setBalance(total.subtract(safe(invoice.getAmountPaid())));
+        BigDecimal taxableValue = subtotal.subtract(totalDiscount);
+        BigDecimal grandTotal = taxableValue.add(totalTax);
+
+        invoice.setSubtotal(subtotal);
+        invoice.setTotalDiscount(totalDiscount);
+        invoice.setTotalTax(totalTax);
+        invoice.setGrandTotal(grandTotal);
+        invoice.setBalance(grandTotal.subtract(safe(invoice.getAmountPaid())));
+    }
+
+    // ================= STATUS UPDATE =================
+    private void updateInvoiceStatus(SalesInvoice invoice) {
+        // Don't override cancelled status
+        if ("CANCELLED".equalsIgnoreCase(invoice.getStatus())) {
+            return;
+        }
+
+        BigDecimal amountPaid = safe(invoice.getAmountPaid());
+        BigDecimal grandTotal = safe(invoice.getGrandTotal());
+
+        if (amountPaid.compareTo(grandTotal) >= 0) {
+            // Full payment received
+            invoice.setStatus("paid");
+        } else if (amountPaid.compareTo(BigDecimal.ZERO) > 0) {
+            // Partial payment received
+            invoice.setStatus("partial");
+        } else {
+            // No payment received
+            invoice.setStatus("pending");
+        }
     }
 }

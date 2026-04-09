@@ -60,7 +60,7 @@ function Login() {
     setIsLoading(true);
 
     try {
-      // ✅ Step 1: Login and get token
+      // Step 1: Login and get token
       const token = await loginUser({
         emailOrPhone: formData.email,
         password: formData.password,
@@ -68,21 +68,21 @@ function Login() {
 
       localStorage.setItem("token", token);
 
-      // ✅ Step 2: Fetch businesses (check if user has any businesses)
+      // Step 2: Fetch businesses (check if user has any businesses)
       const businessRes = await fetch("http://localhost:8080/api/business/my", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // ✅ Step 3: Handle response safely
+      // Step 3: Handle response safely
       let businesses = [];
 
       if (businessRes.ok) {
         businesses = await businessRes.json();
       }
 
-      // ✅ Step 4: Store user info
+      // Step 4: Store user info
       localStorage.setItem("userEmail", formData.email);
 
       const nameFromEmail = formData.email.includes("@")

@@ -26,7 +26,6 @@ function CreateQuotation() {
   const [formData, setFormData] = useState({
     customerName: "",
     quotationNumber: "QT-" + String(Math.floor(Math.random() * 1000) + 1).padStart(3, "0"),
-    manualQuotationNumber: false,
     quotationDate: new Date().toISOString().split("T")[0],
     validTill: "",
     shippingCharges: 0,
@@ -336,6 +335,7 @@ function CreateQuotation() {
 
     return {
       partyId: selectedPartyId,
+      quotationNumber: formData.quotationNumber,
       quotationDate: formData.quotationDate || null,
       validUntil: formData.validTill || null,
       discountAmount: 0,
@@ -730,36 +730,14 @@ function CreateQuotation() {
           <div className="form-group">
             <label className="form-label">Quotation Number *</label>
             <div className="quotation-number-group">
-              {!formData.manualQuotationNumber ? (
-                <div className="auto-number-display">
-                  <input
-                    type="text"
-                    value={formData.quotationNumber}
-                    disabled
-                    className="form-input"
-                  />
-                </div>
-              ) : (
+              <div className="auto-number-display">
                 <input
                   type="text"
                   value={formData.quotationNumber}
-                  onChange={(e) =>
-                    handleFormChange("quotationNumber", e.target.value)
-                  }
-                  placeholder="Enter quotation number"
+                  disabled
                   className="form-input"
                 />
-              )}
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formData.manualQuotationNumber}
-                  onChange={(e) =>
-                    handleFormChange("manualQuotationNumber", e.target.checked)
-                  }
-                />
-                <span className="checkbox-text">Manual</span>
-              </label>
+              </div>
             </div>
           </div>
         </div>

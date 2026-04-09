@@ -18,6 +18,18 @@ function ItemForm() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
+  const [categories, setCategories] = useState(() => {
+    const stored = localStorage.getItem("itemCategories");
+    return stored ? JSON.parse(stored) : [
+      "Electronics",
+      "Clothing",
+      "Food & Beverages",
+      "Home & Garden",
+      "Grocery"
+    ];
+  });
 
   const [formData, setFormData] = useState({
   name: "",
@@ -160,6 +172,23 @@ function ItemForm() {
   const handleActionSelect = (action) => {
     setSelectedAction(action);
     setDropdownOpen(false);
+  };
+
+  const handleAddCustomCategory = () => {
+    if (customCategoryInput.trim() && !categories.includes(customCategoryInput.trim())) {
+      const newCategories = [...categories, customCategoryInput.trim()];
+      setCategories(newCategories);
+      localStorage.setItem("itemCategories", JSON.stringify(newCategories));
+      
+      // Set the category to the newly added one
+      setFormData((prev) => ({
+        ...prev,
+        category: customCategoryInput.trim(),
+      }));
+      
+      setCustomCategoryInput("");
+      setShowCustomCategory(false);
+    }
   };
 
   const validateForm = () => {
@@ -370,6 +399,7 @@ function ItemForm() {
               value={formData.unit}
               onChange={handleChange}
             >
+              <option value="">Select unit</option>
             {itemType === "Service" ? (
               <>
                 <option>hour</option>
@@ -401,18 +431,84 @@ function ItemForm() {
         <div className="item-form-grid" style={{ marginTop: "16px" }}>
           <div className="form-group">
             <label>Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-            >
-              <option>Select category</option>
-              <option>Electronics</option>
-              <option>Clothing</option>
-              <option>Food & Beverages</option>
-              <option>Home & Garden</option>
-              <option>Grocery</option>
-            </select>
+            {!showCustomCategory ? (
+              <select
+                name="category"
+                value={formData.category}
+                onChange={(e) => {
+                  if (e.target.value === "__add_new__") {
+                    setShowCustomCategory(true);
+                  } else {
+                    handleChange(e);
+                  }
+                }}
+              >
+                <option>Select category</option>
+                {categories.map((cat, index) => (
+                  <option key={index}>{cat}</option>
+                ))}
+                <option value="__add_new__" style={{ fontWeight: "bold", color: "#1976d2" }}>
+                  + Add New Category
+                </option>
+              </select>
+            ) : (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  placeholder="Enter category name"
+                  value={customCategoryInput}
+                  onChange={(e) => setCustomCategoryInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddCustomCategory();
+                    }
+                  }}
+                  autoFocus
+                  style={{
+                    flex: 1,
+                    padding: "10px 12px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomCategory}
+                  style={{
+                    padding: "10px 16px",
+                    backgroundColor: "#4caf50",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomCategory(false);
+                    setCustomCategoryInput("");
+                  }}
+                  style={{
+                    padding: "10px 16px",
+                    backgroundColor: "#f44336",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

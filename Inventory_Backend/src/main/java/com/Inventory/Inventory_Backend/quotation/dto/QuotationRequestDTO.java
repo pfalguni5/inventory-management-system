@@ -13,6 +13,8 @@ public class QuotationRequestDTO {
 
     private Long partyId;
 
+    private String quotationNumber;
+
     private LocalDate quotationDate;
 
     private LocalDate validUntil;

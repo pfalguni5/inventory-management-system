@@ -31,7 +31,7 @@ function SalesList() {
           date: invoice.invoiceDate,
           customer: partiesMap[invoice.partyId] || `Party #${invoice.partyId}`,
           items: invoice.items ? invoice.items.length : 0,
-          total: invoice.grandTotal || 0,
+          total: invoice.grandTotal || invoice.subtotal || 0,
           status:
             invoice.status === "paid"
               ? "Completed"

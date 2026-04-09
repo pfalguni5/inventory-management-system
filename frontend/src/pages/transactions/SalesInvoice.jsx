@@ -46,9 +46,7 @@ function SalesInvoice() {
   });
   const [customerErrors, setCustomerErrors] = useState({});
 
-  const [manualInvoiceNumber, setManualInvoiceNumber] = useState("");
   const [autoInvoiceNumber, setAutoInvoiceNumber] = useState("");
-  const [manualInvoiceMode, setManualInvoiceMode] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [paymentType, setPaymentType] = useState("");
@@ -106,7 +104,7 @@ function SalesInvoice() {
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const day = String(today.getDate()).padStart(2, "0");
     const sequence = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-    setAutoInvoiceNumber(`SAL-${year}-${month}${day}-${sequence}`);
+    setAutoInvoiceNumber(`INV-${year}-${month}${day}-${sequence}`);
 
     const fetchDropdownData = async () => {
       try {
@@ -749,6 +747,7 @@ function SalesInvoice() {
 
     const payload = {
       partyId: Number(selectedCustomer),
+      invoiceNumber: autoInvoiceNumber,
       invoiceDate: invoiceDate,
       dueDate: dueDate || null,
       paymentType: paymentType.toUpperCase(),
@@ -830,32 +829,14 @@ function SalesInvoice() {
         <div className="form-group">
           <label>Invoice Number *</label>
           <div className="invoice-number-group">
-            {!manualInvoiceMode ? (
-              <div className="auto-number-display">
-                <input
-                  type="text"
-                  value={autoInvoiceNumber}
-                  disabled
-                  className="form-input"
-                />
-              </div>
-            ) : (
+            <div className="auto-number-display">
               <input
                 type="text"
-                value={manualInvoiceNumber}
-                onChange={(e) => setManualInvoiceNumber(e.target.value)}
-                placeholder="Enter invoice number"
+                value={autoInvoiceNumber}
+                disabled
                 className="form-input"
               />
-            )}
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={manualInvoiceMode}
-                onChange={(e) => setManualInvoiceMode(e.target.checked)}
-              />
-              <span className="checkbox-text">Manual</span>
-            </label>
+            </div>
           </div>
         </div>
 
@@ -1466,27 +1447,16 @@ function SalesInvoice() {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "20px" }}>
           <button
             className="btn-save"
-            style={{ padding: "8px 16px", fontSize: "13px" }}
             onClick={handleSaveInvoice}
             disabled={isSubmitting}
           >
             {isSubmitting ? "Saving..." : isEditMode ? "Update Invoice" : "Save Invoice"}
           </button>
-          <button
-            className="secondary"
-            onClick={() => navigate("/app/e-way-bills/new")}
-            style={{ padding: "8px 24px", fontSize: "14px" }}
-            disabled={parseFloat(calculateTotal()) <= 50000}
-          >
-            Generate E-Way Bill
-          </button>
         </div>
       </div>
-
-      {/* E-Way Bill Button (always visible for now) */}
 
       {/* ADD NEW CUSTOMER MODAL */}
       {showCustomerModal && (

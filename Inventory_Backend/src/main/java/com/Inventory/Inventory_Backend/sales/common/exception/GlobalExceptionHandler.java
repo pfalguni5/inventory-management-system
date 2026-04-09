@@ -10,7 +10,6 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,8 +65,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Missing required header: " + ex.getHeaderName(),
-                null
-        );
+                null);
     }
 
     // ==========================================================
@@ -80,17 +78,14 @@ public class GlobalExceptionHandler {
         Map<String, String> fieldErrors = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors()
-                .forEach(error ->
-                        fieldErrors.put(error.getField(), error.getDefaultMessage())
-                );
+                .forEach(error -> fieldErrors.put(error.getField(), error.getDefaultMessage()));
 
         log.warn("Validation failed: {}", fieldErrors);
 
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Validation failed",
-                fieldErrors
-        );
+                fieldErrors);
     }
 
     // ==========================================================
@@ -105,8 +100,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Invalid request body",
-                null
-        );
+                null);
     }
 
     // ==========================================================
@@ -121,8 +115,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage(),
-                null
-        );
+                null);
     }
 
     // ==========================================================
@@ -137,8 +130,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",
-                null
-        );
+                null);
     }
 
     // ==========================================================
@@ -148,8 +140,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> buildResponse(
             HttpStatus status,
             String message,
-            Map<String, String> fieldErrors
-    ) {
+            Map<String, String> fieldErrors) {
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(status.value())
@@ -159,6 +150,5 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(status).body(error);
     }
-
 
 }

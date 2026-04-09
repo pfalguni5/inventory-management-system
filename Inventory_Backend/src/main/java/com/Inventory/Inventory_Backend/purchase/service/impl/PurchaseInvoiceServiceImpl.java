@@ -57,6 +57,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         invoice.setItems(new ArrayList<>());
 
         calculateInvoiceTotals(invoice, request);
+        updateInvoiceStatus(invoice);
 
         invoiceRepository.save(invoice);
         System.out.println("Items count: " + invoice.getItems().size());
@@ -65,8 +66,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    invoice.getId()
-            );
+                    invoice.getId());
         }
 
         return mapper.toResponseDTO(invoice);
@@ -87,8 +87,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     public List<PurchaseInvoiceResponseDTO> getAllPurchaseInvoices(Long businessId) {
 
         return mapper.toResponseDTOList(
-                invoiceRepository.findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(businessId)
-        );
+                invoiceRepository.findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(businessId));
     }
 
     // ================= UPDATE =================
@@ -107,34 +106,35 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         validateBillNumberIsUniqueForUpdate(businessId, request.getBillNumber(), id);
         validateAllItemsBelongToBusiness(request.getItems(), businessId);
 
-        //step 1: restore old stock first
-        for(PurchaseInvoiceItem item : invoice.getItems()){
+        // step 1: restore old stock first
+        for (PurchaseInvoiceItem item : invoice.getItems()) {
             stockService.decreaseStock(
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    invoice.getId()
-            );
+                    invoice.getId());
         }
-        //thn clear items
-        invoice.getItems().clear();
 
-        //update fields
+        // ===== EXPLICITLY DELETE OLD ITEMS FROM DATABASE =====
+        invoice.getItems().clear();
+        invoiceRepository.flush(); // Force JPA to execute the delete immediately
+
+        // update fields
         invoice.setPartyId(request.getPartyId());
         invoice.setBillNumber(request.getBillNumber());
 
         calculateInvoiceTotals(invoice, request);
+        updateInvoiceStatus(invoice);
 
         PurchaseInvoice saved = invoiceRepository.save(invoice);
 
-        //step 2: apply new stock
-        for(PurchaseInvoiceItem item : saved.getItems()) {
+        // step 2: apply new stock
+        for (PurchaseInvoiceItem item : saved.getItems()) {
             stockService.increaseStock(
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    saved.getId()
-            );
+                    saved.getId());
         }
 
         return mapper.toResponseDTO(saved);
@@ -167,13 +167,12 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
                 .findByIdAndBusinessIdAndIsDeletedFalse(id, businessId)
                 .orElseThrow(() -> new PurchaseInvoiceNotFoundException(id, businessId));
 
-        for(PurchaseInvoiceItem item : invoice.getItems()){
+        for (PurchaseInvoiceItem item : invoice.getItems()) {
             stockService.decreaseStock(
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    invoice.getId()
-            );
+                    invoice.getId());
         }
 
         invoice.setStatus("CANCELLED");
@@ -207,8 +206,8 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     }
 
     private void validateBillNumberIsUniqueForUpdate(Long businessId,
-                                                     String billNumber,
-                                                     Long id) {
+            String billNumber,
+            Long id) {
 
         if (invoiceRepository.existsByBusinessIdAndBillNumberAndIdNotAndIsDeletedFalse(
                 businessId, billNumber, id)) {
@@ -218,7 +217,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     }
 
     private void validateAllItemsBelongToBusiness(List<PurchaseInvoiceItemDTO> items,
-                                                  Long businessId) {
+            Long businessId) {
 
         for (PurchaseInvoiceItemDTO dto : items) {
             if (!itemRepository.existsByIdAndBusinessIdAndIsActiveTrue(
@@ -232,23 +231,64 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     // ================= CALCULATIONS =================
 
     private void calculateInvoiceTotals(PurchaseInvoice invoice,
-                                        PurchaseInvoiceRequestDTO request) {
+            PurchaseInvoiceRequestDTO request) {
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalTax = BigDecimal.ZERO;
 
         for (PurchaseInvoiceItemDTO item : request.getItems()) {
-            BigDecimal amount = item.getQuantity().multiply(item.getRate());
-            total = total.add(amount);
+            // Subtotal for this item
+            BigDecimal itemSubtotal = item.getQuantity().multiply(item.getRate());
+            subtotal = subtotal.add(itemSubtotal);
+
+            // Tax for this item (can be CGST, SGST, or IGST depending on intraState flag)
+            BigDecimal gstRate = item.getGstRate() != null ? item.getGstRate() : BigDecimal.ZERO;
+            BigDecimal itemTax = itemSubtotal.multiply(gstRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            totalTax = totalTax.add(itemTax);
 
             PurchaseInvoiceItem entity = mapper.toItemEntity(item);
-            //multi tenant safety
+            // multi tenant safety
             entity.setBusinessId(invoice.getBusinessId());
+
+            // ===== SET ITEM-LEVEL TOTAL =====
+            entity.setTotal(itemSubtotal.add(itemTax));
+
+            // ===== IMPORTANT: Set ID to null for new items during updates =====
+            entity.setId(null);
+
             invoice.addItem(entity);
         }
 
-        invoice.setGrandTotal(total);
+        BigDecimal grandTotal = subtotal.add(totalTax);
+
+        invoice.setSubtotal(subtotal);
+        invoice.setTotalTax(totalTax);
+        invoice.setGrandTotal(grandTotal);
         invoice.setAmountPaid(
-                request.getAmountPaid() == null ? BigDecimal.ZERO : request.getAmountPaid()
-        );
+                request.getAmountPaid() == null ? BigDecimal.ZERO : request.getAmountPaid());
+        // ===== SET BALANCE =====
+        invoice.setBalance(grandTotal.subtract(invoice.getAmountPaid()));
+    }
+
+    // ================= STATUS UPDATE =================
+    private void updateInvoiceStatus(PurchaseInvoice invoice) {
+        // Don't override cancelled status
+        if ("CANCELLED".equalsIgnoreCase(invoice.getStatus())) {
+            return;
+        }
+
+        BigDecimal amountPaid = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO;
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+
+        if (amountPaid.compareTo(grandTotal) >= 0) {
+            // Full payment received
+            invoice.setStatus("paid");
+        } else if (amountPaid.compareTo(BigDecimal.ZERO) > 0) {
+            // Partial payment received
+            invoice.setStatus("partial");
+        } else {
+            // No payment received
+            invoice.setStatus("pending");
+        }
     }
 }
