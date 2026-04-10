@@ -16,6 +16,7 @@ const QuotationView = () => {
 
   const [quotation, setQuotation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [partyDetails, setPartyDetails] = useState(null);
 
   useEffect(() => {
     const fetchQuotationDetails = async () => {
@@ -30,6 +31,7 @@ const QuotationView = () => {
         const parties = partyResponse.data;
 
         const matchingParty = parties.find((party) => party.id === backendQuotation.partyId);
+        setPartyDetails(matchingParty);
 
         const transformedQuotation = {
           id: backendQuotation.id,
@@ -52,11 +54,14 @@ const QuotationView = () => {
               ? "Converted"
               : backendQuotation.status,
           items: (backendQuotation.items || []).map((item, index) => ({
-            id: index + 1,
+            srNo: index + 1,
             itemName: item.itemName,
+            description: item.description || "",
+            hsnCode: item.hsnCode || item.hsnSac || "-",
             qty: item.quantity,
+            unit: item.unit || "",
             rate: item.rate,
-            discount: item.discountPercent || 0,
+            discount: item.discountAmount || 0,
             gstPercent: item.gstRate || 0,
             amount: item.amount || 0,
           })),
@@ -105,7 +110,6 @@ const QuotationView = () => {
     );
   }
 
-
   const handleDownloadPDF = () => {
     alert("PDF download initiated for Quotation " + quotation.number);
   };
@@ -118,7 +122,7 @@ const QuotationView = () => {
     alert("Share quotation " + quotation.number);
   };
 
-    const handleConvertToInvoice = async () => {
+  const handleConvertToInvoice = async () => {
     try {
       const response = await convertQuotationToInvoice(quotation.id);
       const invoiceId = response.data;
@@ -139,18 +143,6 @@ const QuotationView = () => {
     }
   };
 
-  const getStatusStyle = (status) => {
-    const styles = {
-      Draft: "draft",
-      Sent: "sent",
-      Accepted: "accepted",
-      Rejected: "rejected",
-      Converted: "converted",
-      Expired: "expired",
-    };
-    return styles[status] || "draft";
-  };
-
   const formatCurrency = (value) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -161,215 +153,296 @@ const QuotationView = () => {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-IN", {
-      year: "numeric",
+      day: "2-digit",
       month: "short",
-      day: "numeric",
+      year: "numeric",
     });
   };
 
   return (
     <div className="quotation-view-container">
-      {/* HEADER */}
-      <div className="quotation-view-header">
-        <div className="header-title-section">
-          <h1 className="page-title">Quotation Details</h1>
-          <div className="header-meta">
-            <span className="quotation-number">{quotation.number}</span>
-            <span className={`status-badge ${getStatusStyle(quotation.status)}`}>
-              {quotation.status}
-            </span>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-secondary" onClick={handleDownloadPDF}>
-            <AppIcon name="download" /> Download PDF
-          </button>
-          <button className="btn btn-secondary" onClick={handlePrint}>
-            <AppIcon name="print" /> Print
-          </button>
-          <button className="btn btn-secondary" onClick={handleShare}>
-            <AppIcon name="share" /> Share
-          </button>
-        </div>
+      {/* ACTION BUTTONS */}
+      <div className="quotation-actions-bar">
+        <button className="btn btn-secondary" onClick={handleDownloadPDF}>
+          <AppIcon name="download" /> Download PDF
+        </button>
+        <button className="btn btn-secondary" onClick={handlePrint}>
+          <AppIcon name="print" /> Print
+        </button>
+        <button className="btn btn-secondary" onClick={handleShare}>
+          <AppIcon name="share" /> Share
+        </button>
       </div>
 
-      {/* QUICK INFO */}
-      <div className="quotation-quick-info">
-        <div className="info-item">
-          <span className="info-label">Customer</span>
-          <span className="info-value">{quotation.customer}</span>
-        </div>
-        <div className="info-item">
-          <span className="info-label">Quotation Date</span>
-          <span className="info-value">{formatDate(quotation.quotationDate)}</span>
-        </div>
-        <div className="info-item">
-          <span className="info-label">Valid Till</span>
-          <span className="info-value">{formatDate(quotation.validTill)}</span>
-        </div>
-      </div>
-
-      {/* QUOTATION TERMS SECTION */}
-      <div className="quotation-card">
-        <h2 className="section-title">Quotation Terms</h2>
-        <div className="terms-grid">
-          <div className="term-item">
-            <span className="term-label">Payment Term</span>
-            <span className="term-value">{quotation.paymentTerms || "—"}</span>
-          </div>
-          <div className="term-item">
-            <span className="term-label">Delivery Time</span>
-            <span className="term-value">{quotation.deliveryTime || "—"}</span>
-          </div>
-          <div className="term-item">
-            <span className="term-label">Shipping Charges</span>
-            <span className="term-value">{formatCurrency(quotation.shippingCharges)}</span>
-          </div>
-        </div>
-        {quotation.notes && (
-          <div className="notes-section">
-            <span className="notes-label">Notes</span>
-            <p className="notes-value">{quotation.notes}</p>
-          </div>
-        )}
-      </div>
-
-      {/* MAIN CONTENT */}
-      <div className="quotation-content">
-        {/* ITEMS CARD */}
-        <div className="quotation-card">
-          <h2 className="section-title">Items</h2>
-          <div className="items-table-wrapper">
-            <table className="items-table">
-              <thead>
-                <tr>
-                  <th>Item / Service</th>
-                  <th className="col-qty">Qty</th>
-                  <th className="col-rate">Rate</th>
-                  <th className="col-discount">Discount %</th>
-                  <th className="col-gst">GST %</th>
-                  <th className="col-amount">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotation.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.itemName}</td>
-                    <td className="col-qty">{item.qty}</td>
-                    <td className="col-rate text-right">{formatCurrency(item.rate)}</td>
-                    <td className="col-discount">{item.discount}%</td>
-                    <td className="col-gst">{item.gstPercent}%</td>
-                    <td className="col-amount text-right">
-                      <strong>{formatCurrency(item.amount)}</strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TOTALS CARD */}
-        <div className="quotation-totals">
-          <div className="totals-box">
-            <div className="total-row">
-              <span className="total-label">Subtotal (Taxable)</span>
-              <span className="total-value">{formatCurrency(quotation.subtotal)}</span>
-            </div>
-            <div className="total-row">
-              <span className="total-label">Discount Amount</span>
-              <span className="total-value">-{formatCurrency(quotation.totalDiscount)}</span>
-            </div>
-            <div className="total-row">
-              <span className="total-label">Tax Amount (GST)</span>
-              <span className="total-value">{formatCurrency(quotation.totalGST)}</span>
-            </div>
-            <div className="total-row grand-total">
-              <span className="total-label">Grand Total</span>
-              <span className="total-value">{formatCurrency(quotation.grandTotal)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* STATUS CONTROLS CARD */}
-        <div className="quotation-card status-controls-card">
-          <h2 className="section-title">Status Management</h2>
-          <div className="status-controls">
-            <button
-              className="btn btn-secondary"
-              onClick={async () => {
-                try {
-                  await updateQuotationStatus(quotation.id, "APPROVED");
-                  setQuotation({
-                    ...quotation,
-                    status: "Accepted"
-                  });
-                  alert("Quotation marked as Accepted");
-                } catch (error) {
-                  alert(error.response?.data?.message || "Failed to update status");
-                }
-              }}
-              disabled={
-                quotation.status === "Accepted" ||
-                quotation.status === "Rejected" ||
-                quotation.status === "Converted"
-              }
-            >
-              <AppIcon name="check" /> Mark Accepted
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={async () => {
-                try {
-                  await updateQuotationStatus(quotation.id, "REJECTED");
-                  setQuotation({
-                    ...quotation,
-                    status: "Rejected"
-                  });
-                  alert("Quotation marked as Rejected");
-                } catch (error) {
-                  alert(error.response?.data?.message || "Failed to update status");
-                }
-              }}
-              disabled={
-                quotation.status === "Rejected" ||
-                quotation.status === "Accepted" ||
-                quotation.status === "Converted"
-              }
-            >
-              <AppIcon name="close" /> Mark Rejected
-            </button>
-          </div>
-        </div>
-
-        {/* CONVERT TO INVOICE CARD */}
-        <div className="quotation-card convert-card">
-          <h2 className="section-title">Convert to Invoice</h2>
-          {quotation.linkedInvoice ? (
-            <div className="linked-invoice-info">
-              <p className="linked-invoice-status">
-                ✓ Linked Invoice: <strong>{quotation.linkedInvoice}</strong>
-              </p>
-              <p className="linked-invoice-note">
-                This quotation has been converted to a sales invoice. You can view it in the
-                Sales Invoices section.
-              </p>
-            </div>
-          ) : (
-            <p className="convert-info-text">
-              Convert this quotation to a sales invoice. This action is only available for
-              accepted quotations.
+      {/* A4 QUOTATION DOCUMENT */}
+      <div className="quotation-document">
+        {/* SECTION 1: Header */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          borderBottom: "2px solid #1a3a52",
+          minHeight: "120px"
+        }}>
+          {/* Company Info (Left) */}
+          <div style={{ padding: "20px" }}>
+            <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "bold", color: "#1a3a52" }}>
+              Your Company Name
+            </h3>
+            <p style={{ margin: "4px 0", fontSize: "12px", color: "#666", lineHeight: "1.4" }}>
+              Address Line 1<br/>
+              City, State 123456<br/>
+              Country
             </p>
-          )}
+          </div>
+          {/* Quotation Title (Right) */}
+          <div style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <h1 style={{ margin: "0", fontSize: "35px", fontWeight: "bold", color: "#0066cc", letterSpacing: "2px" }}>
+              QUOTATION
+            </h1>
+          </div>
+        </div>
+
+        {/* SECTION 2: Party Details and Quotation Info */}
+        <div className="quotation-section section-party" style={{ borderBottom: "2px solid #1a3a52" }}>
+          <div className="party-left" style={{ borderRight: "2px solid #1a3a52" }}>
+            <div className="party-label">Quotation For:</div>
+            <div className="party-details">
+              <div className="party-name">{quotation.customer}</div>
+              <div className="party-address">
+                {partyDetails?.addressLine1}<br/>
+                {partyDetails?.city}, {partyDetails?.state} {partyDetails?.pincode}<br/>
+                {partyDetails?.country}
+              </div>
+            </div>
+          </div>
+          <div className="party-right">
+            <div className="info-row">
+              <span className="info-label">Date:</span>
+              <span className="info-value">{formatDate(quotation.quotationDate)}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Quotation #:</span>
+              <span className="info-value">{quotation.number}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Valid Till:</span>
+              <span className="info-value">{formatDate(quotation.validTill)}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Delivery Time:</span>
+              <span className="info-value">{quotation.deliveryTime || "—"}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Payment Term:</span>
+              <span className="info-value">{quotation.paymentTerms || "—"}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Shipping Charges:</span>
+              <span className="info-value">{formatCurrency(quotation.shippingCharges)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: Items Table */}
+        <div className="quotation-section section-items" style={{ borderBottom: "2px solid #1a3a52", overflow: "hidden" }}>
+          <table className="quotation-items-table">
+            <thead>
+              <tr>
+                <th className="col-srno">Sr No</th>
+                <th className="col-item">Item & Description</th>
+                <th className="col-qty">Qty</th>
+                <th className="col-unit">Unit</th>
+                <th className="col-rate">Rate</th>
+                <th className="col-discount">Discount</th>
+                <th className="col-gst">GST %</th>
+                <th className="col-amount">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotation.items.map((item) => (
+                <tr key={item.srNo}>
+                  <td className="col-srno">{item.srNo}</td>
+                  <td className="col-item">
+                    <div style={{ fontWeight: "bold" }}>{item.itemName}</div>
+                    {item.description && item.description.trim() !== "" && (
+                      <div style={{ fontSize: "11px", color: "#666", marginTop: "2px", marginBottom: "4px" }}>
+                        {item.description}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "11px", color: "#666" }}>HSN: {item.hsnCode || "-"}</div>
+                  </td>
+                  <td className="col-qty">{item.qty}</td>
+                  <td className="col-unit">{item.unit}</td>
+                  <td className="col-rate text-right">{formatCurrency(item.rate)}</td>
+                  <td className="col-discount text-right">{formatCurrency(item.discount)}</td>
+                  <td className="col-gst text-center">{item.gstPercent}%</td>
+                  <td className="col-amount text-right">{formatCurrency(item.amount)}</td>
+                </tr>
+              ))}
+              {/* Subtotal Row */}
+              <tr style={{ backgroundColor: "#f9f9f9", fontWeight: "bold", borderTop: "2px solid #1a3a52" }}>
+                <td colSpan="7" style={{ padding: "14px", textAlign: "right", borderRight: "1px solid #1a3a52" }}>
+                  Subtotal
+                </td>
+                <td style={{ padding: "14px", textAlign: "right" }}>
+                  {formatCurrency(quotation.subtotal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* SECTION 4: Totals and Notes */}
+        <div className="quotation-section section-totals" style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          minHeight: "150px",
+          paddingBottom: "0"
+        }}>
+          {/* Left: Notes */}
+          <div style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div className="quotation-note">
+                <div className="note-title">Important Note</div>
+                <div className="note-text">
+                  This quotation is not a contract or a bill. It is our best guess at the total price for service and goods described above.
+                </div>
+                <div className="thank-you-note">
+                  Looking forward to working with you!
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Right: Totals */}
+          <div style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end", borderLeft: "2px solid #1a3a52", borderBottom: "2px solid #1a3a52" }}>
+            <div style={{ fontSize: "13px" }}>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                marginBottom: "8px"
+              }}>
+                <span>Subtotal</span>
+                <span style={{ textAlign: "right" }}>{formatCurrency(quotation.subtotal)}</span>
+              </div>
+              
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                marginBottom: "8px"
+              }}>
+                <span>Total Discount</span>
+                <span style={{ textAlign: "right" }}>−{formatCurrency(quotation.totalDiscount)}</span>
+              </div>
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                marginBottom: "12px",
+                paddingBottom: "8px",
+                borderBottom: "1px solid #ddd"
+              }}>
+                <span>Total GST</span>
+                <span style={{ textAlign: "right" }}>{formatCurrency(quotation.totalGST)}</span>
+              </div>
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                backgroundColor: "#e3f2fd",
+                padding: "8px",
+                fontWeight: "bold",
+                fontSize: "13px"
+              }}>
+                <span>Grand Total</span>
+                <span style={{ textAlign: "right", color: "#0066cc" }}>{formatCurrency(quotation.grandTotal)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* STATUS CONTROLS CARD (Outside the quotation document) */}
+      <div className="quotation-card status-controls-card">
+        <h2 className="section-title">Status Management</h2>
+        <div className="status-controls">
           <button
-            className="btn btn-success"
-            onClick={handleConvertToInvoice}
-            disabled={quotation.status !== "Accepted" || quotation.linkedInvoice}
+            className="btn btn-secondary"
+            onClick={async () => {
+              try {
+                await updateQuotationStatus(quotation.id, "APPROVED");
+                setQuotation({
+                  ...quotation,
+                  status: "Accepted"
+                });
+                alert("Quotation marked as Accepted");
+              } catch (error) {
+                alert(error.response?.data?.message || "Failed to update status");
+              }
+            }}
+            disabled={
+              quotation.status === "Accepted" ||
+              quotation.status === "Rejected" ||
+              quotation.status === "Converted"
+            }
           >
-            <AppIcon name="document" /> Convert to Invoice
+            <AppIcon name="check" /> Mark Accepted
+          </button>
+
+          <button
+            className="btn btn-secondary"
+            onClick={async () => {
+              try {
+                await updateQuotationStatus(quotation.id, "REJECTED");
+                setQuotation({
+                  ...quotation,
+                  status: "Rejected"
+                });
+                alert("Quotation marked as Rejected");
+              } catch (error) {
+                alert(error.response?.data?.message || "Failed to update status");
+              }
+            }}
+            disabled={
+              quotation.status === "Rejected" ||
+              quotation.status === "Accepted" ||
+              quotation.status === "Converted"
+            }
+          >
+            <AppIcon name="close" /> Mark Rejected
           </button>
         </div>
+      </div>
+
+      {/* CONVERT TO INVOICE CARD (Outside the quotation document) */}
+      <div className="quotation-card convert-card">
+        <h2 className="section-title">Convert to Invoice</h2>
+        {quotation.linkedInvoice ? (
+          <div className="linked-invoice-info">
+            <p className="linked-invoice-status">
+              ✓ Linked Invoice: <strong>{quotation.linkedInvoice}</strong>
+            </p>
+            <p className="linked-invoice-note">
+              This quotation has been converted to a sales invoice. You can view it in the
+              Sales Invoices section.
+            </p>
+          </div>
+        ) : (
+          <p className="convert-info-text">
+            Convert this quotation to a sales invoice. This action is only available for
+            accepted quotations.
+          </p>
+        )}
+        <button
+          className="btn btn-success"
+          onClick={handleConvertToInvoice}
+          disabled={quotation.status !== "Accepted" || quotation.linkedInvoice}
+        >
+          <AppIcon name="document" /> Convert to Invoice
+        </button>
       </div>
     </div>
   );

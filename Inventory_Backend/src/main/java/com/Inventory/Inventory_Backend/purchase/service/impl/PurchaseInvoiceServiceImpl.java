@@ -234,16 +234,27 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
             PurchaseInvoiceRequestDTO request) {
 
         BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalDiscount = BigDecimal.ZERO;
         BigDecimal totalTax = BigDecimal.ZERO;
 
         for (PurchaseInvoiceItemDTO item : request.getItems()) {
-            // Subtotal for this item
-            BigDecimal itemSubtotal = item.getQuantity().multiply(item.getRate());
+            // Base amount for this item (quantity * rate)
+            BigDecimal itemBase = item.getQuantity().multiply(item.getRate())
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // Discount for this item
+            BigDecimal itemDiscount = item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO;
+            totalDiscount = totalDiscount.add(itemDiscount);
+
+            // Subtotal after discount
+            BigDecimal itemSubtotal = itemBase.subtract(itemDiscount)
+                    .setScale(2, RoundingMode.HALF_UP);
             subtotal = subtotal.add(itemSubtotal);
 
-            // Tax for this item (can be CGST, SGST, or IGST depending on intraState flag)
+            // Tax for this item (calculated on discounted amount)
             BigDecimal gstRate = item.getGstRate() != null ? item.getGstRate() : BigDecimal.ZERO;
-            BigDecimal itemTax = itemSubtotal.multiply(gstRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            BigDecimal itemTax = itemSubtotal.multiply(gstRate)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
             totalTax = totalTax.add(itemTax);
 
             PurchaseInvoiceItem entity = mapper.toItemEntity(item);

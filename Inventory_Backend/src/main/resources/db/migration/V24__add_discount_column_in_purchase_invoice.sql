@@ -1,0 +1,1 @@
+ALTER TABLE purchase_invoice_items ADD COLUMN discount DECIMAL(15, 2) DEFAULT 0.00 NOT NULL;

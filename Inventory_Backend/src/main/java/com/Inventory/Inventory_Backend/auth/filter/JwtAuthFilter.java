@@ -3,7 +3,6 @@ package com.Inventory.Inventory_Backend.auth.filter;
 import com.Inventory.Inventory_Backend.auth.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,18 +22,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
-
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+            HttpServletResponse response,
+            FilterChain filterChain)
             throws ServletException, IOException {
 
         String path = request.getServletPath();
 
-        //allow preflight requests
-        if("OPTIONS".equalsIgnoreCase(request.getMethod())){
+        // allow preflight requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,7 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // get Authorization  header
+        // get Authorization header
         String authHeader = request.getHeader("Authorization");
 
         // if token missing -> do not block
@@ -55,8 +52,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        try{
-            //extract token
+        try {
+            // extract token
             String token = authHeader.substring(7);
 
             // validate token
@@ -69,18 +66,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Extract userId from token
             Long tokenUserId = jwtUtil.extractUserId(token);
 
-            //create authentication object
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            tokenUserId,
-                            null,
-                            Collections.singletonList(new SimpleGrantedAuthority("USER"))
-                    );
+            // create authentication object
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    tokenUserId,
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("USER")));
 
-            //set in spring context
+            // set in spring context
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch(Exception e){
-            //any error in token -> retun 401
+        } catch (Exception e) {
+            // any error in token -> retun 401
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token Processing failed");
             return;

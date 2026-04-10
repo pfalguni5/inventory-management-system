@@ -39,6 +39,7 @@ function CreateQuotation() {
       id: 1,
       itemId: null,
       itemName: "",
+      description: "",
       hsnCode: "",
       unit: "",
       qty: 1,
@@ -125,6 +126,7 @@ function CreateQuotation() {
         const transformedItems = itemsResponse.data.map((item) => ({
           id: item.id,
           name: item.name,
+          description: item.description || "",
           hsnCode: item.hsn || "",
           unit: item.unit || "",
           rate: item.salePrice || 0,
@@ -235,6 +237,7 @@ function CreateQuotation() {
 
           if (selectedBackendItem) {
             updatedItem.itemId = selectedBackendItem.id;
+            updatedItem.description = selectedBackendItem.description || "";
             updatedItem.hsnCode = selectedBackendItem.hsnCode;
             updatedItem.unit = selectedBackendItem.unit;
             updatedItem.rate = selectedBackendItem.rate;
@@ -260,6 +263,7 @@ function CreateQuotation() {
             id: newId,
             itemId: null,
             itemName: "",
+            description: "",
             hsnCode: "",
             unit: "",
             qty: 1,
@@ -320,7 +324,7 @@ function CreateQuotation() {
       return {
         itemId: item.itemId,
         itemName: item.itemName,
-        description: "",
+        description: item.description || "",
         quantity: qty,
         unit: item.unit,
         rate: rate,
@@ -835,7 +839,7 @@ function CreateQuotation() {
       </div>
 
       {/* ITEMS SECTION */}
-      <div className="quotation-card">
+      <div className="quotation-card quotation-items-card">
         <div className="section-header">
           <h2 className="section-title">Quotation Items</h2>
           <div style={{ display: "flex", gap: "8px" }}>

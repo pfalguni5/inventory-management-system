@@ -53,6 +53,7 @@ function PurchaseEntry() {
       unit: "",
       qty: "",
       rate: "",
+      discount: "",
       gstPercent: "",
     },
   ]);
@@ -88,7 +89,8 @@ function PurchaseEntry() {
           unit: i.unit,
           itemType: i.type.toUpperCase(), // Ensure case matches
           rate: i.purchasePrice || 0, // Use purchase price for purchase entry
-          gstRate: i.gstRate || 0
+          gstRate: i.gstRate || 0,
+          discount: i.purchaseDiscountAmount || 0 // Auto-fetch purchase discount
         }));
         setBackendItems(itemsList);
 
@@ -127,6 +129,7 @@ function PurchaseEntry() {
             unit: item.unit,
             qty: item.quantity,
             rate: item.rate,
+            discount: item.discount || 0,
             gstPercent: item.gstRate
           };
         });
@@ -139,6 +142,7 @@ function PurchaseEntry() {
           unit: "",
           qty: "",
           rate: "",
+          discount: "",
           gstPercent: "",
         });
 
@@ -201,6 +205,7 @@ function PurchaseEntry() {
       unit: "",
       qty: "",
       rate: "",
+      discount: "",
       gstPercent: "",
     };
     setLines([...linesToUse, newLine]);
@@ -212,6 +217,9 @@ function PurchaseEntry() {
     const selectedItem = backendItems.find((item) => item.name === selectedItemName);
     if (!selectedItem) return;
 
+    console.log("Selected Item:", selectedItem); // Debug log
+    console.log("Discount value:", selectedItem.discount); // Debug log
+
     const updatedLines = lines.map((line) => {
       if (line.id === lineId) {
         return {
@@ -220,6 +228,7 @@ function PurchaseEntry() {
           itemId: selectedItem.id,
           unit: selectedItem.unit,
           rate: selectedItem.rate.toString(),
+          discount: selectedItem.discount ? selectedItem.discount.toString() : "0",
           gstPercent: selectedItem.gstRate.toString(),
         };
       }
@@ -262,28 +271,44 @@ function PurchaseEntry() {
     setLines(updatedLines);
   };
 
-  // Calculate amount for a line
-  const calculateAmount = (qty, rate) => {
-    const amount = (parseFloat(qty) || 0) * (parseFloat(rate) || 0);
+  // Calculate amount for a line (after discount)
+  const calculateAmount = (qty, rate, discount) => {
+    const baseAmount = (parseFloat(qty) || 0) * (parseFloat(rate) || 0);
+    const discountAmount = parseFloat(discount) || 0;
+    const amount = baseAmount - discountAmount;
     return amount > 0 ? `₹ ${amount.toFixed(2)}` : "₹ 0.00";
   };
 
-  // Calculate subtotal (before GST)
+  // Calculate subtotal (after discount, before GST)
   const calculateSubtotal = () => {
     return lines
       .reduce((sum, line) => {
-        const amount = (parseFloat(line.qty) || 0) * (parseFloat(line.rate) || 0);
+        const baseAmount = (parseFloat(line.qty) || 0) * (parseFloat(line.rate) || 0);
+        const discount = parseFloat(line.discount) || 0;
+        const amount = baseAmount - discount;
         return sum + amount;
       }, 0)
       .toFixed(2);
   };
 
-  // Calculate total GST
+  // Calculate total discount
+  const calculateTotalDiscount = () => {
+    return lines
+      .reduce((sum, line) => {
+        const discount = parseFloat(line.discount) || 0;
+        return sum + discount;
+      }, 0)
+      .toFixed(2);
+  };
+
+  // Calculate total GST (on discounted amount)
   const calculateGST = () => {
     return lines
       .reduce((sum, line) => {
-        const amount = (parseFloat(line.qty) || 0) * (parseFloat(line.rate) || 0);
-        const gst = (amount * (parseFloat(line.gstPercent) || 0)) / 100;
+        const baseAmount = (parseFloat(line.qty) || 0) * (parseFloat(line.rate) || 0);
+        const discount = parseFloat(line.discount) || 0;
+        const taxableAmount = baseAmount - discount;
+        const gst = (taxableAmount * (parseFloat(line.gstPercent) || 0)) / 100;
         return sum + gst;
       }, 0)
       .toFixed(2);
@@ -331,6 +356,7 @@ function PurchaseEntry() {
             quantity: Number(l.qty),
             unit: l.unit,
             rate: Number(l.rate),
+            discount: Number(l.discount) || 0,
             gstRate: Number(l.gstPercent)
         }))
     };
@@ -450,6 +476,7 @@ function PurchaseEntry() {
                   <th>Unit</th>
                   <th>Qty</th>
                   <th>Rate</th>
+                  <th>Discount</th>
                   <th>GST %</th>
                   <th>Amount</th>
                   <th className="col-delete"></th>
@@ -502,13 +529,22 @@ function PurchaseEntry() {
                     <td>
                       <input
                         type="number"
+                        value={line.discount}
+                        onChange={(e) => handleLineChange(line.id, "discount", e.target.value)}
+                        className="purchase-table-input"
+                        placeholder="0"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
                         value={line.gstPercent}
                         onChange={(e) => handleLineChange(line.id, "gstPercent", e.target.value)}
                         className="purchase-table-input"
                       />
                     </td>
                     <td className="purchase-amount-cell">
-                      {calculateAmount(line.qty, line.rate)}
+                      {calculateAmount(line.qty, line.rate, line.discount)}
                     </td>
                     <td className="col-delete">
                       <button className="btn-delete-item" onClick={() => removeLine(line.id)}>
@@ -534,6 +570,13 @@ function PurchaseEntry() {
                 <span className="total-label">Subtotal (Taxable Value)</span>
                 <span className="total-value">
                   ₹{parseFloat(calculateSubtotal()).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div className="total-row">
+                <span className="total-label">Total Discount</span>
+                <span className="total-value">
+                  ₹{parseFloat(calculateTotalDiscount()).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                 </span>
               </div>
 

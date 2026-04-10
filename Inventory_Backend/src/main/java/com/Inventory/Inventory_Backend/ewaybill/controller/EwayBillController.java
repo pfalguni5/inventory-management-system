@@ -4,7 +4,6 @@ import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.ewaybill.dto.*;
 import com.Inventory.Inventory_Backend.ewaybill.service.EWayBillService;
 import jakarta.validation.Valid;
-import org.flywaydb.core.internal.util.JsonUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +15,6 @@ public class EwayBillController {
     private final EWayBillService service;
 
     private final BusinessContext businessContext;
-
 
     public EwayBillController(EWayBillService service, BusinessContext businessContext) {
         this.service = service;
@@ -124,7 +122,7 @@ public class EwayBillController {
         return ResponseEntity.noContent().build();
     }
 
-    //get all bills with pagination
+    // get all bills with pagination
     @GetMapping
     public Page<EWayBillResponse> getAllBills(
             @RequestParam(defaultValue = "0") int page,

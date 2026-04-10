@@ -8,10 +8,13 @@ import {
   cancelEWayBill,
   deleteEWayBill,
 } from "../../services/ewayBillService";
+import { getAllSalesInvoices } from "../../services/salesService";
+import { getAllItems } from "../../services/itemService";
 import ExtendValidityModal from "./ExtendValidityModal";
 import UpdateVehicleModal from "./UpdateVehicleModal";
 import CancelBillModal from "./CancelBillModal";
 import "../../styles/global.css";
+import "../../styles/ewaybill-detail.css";
 
 // Helper for title casing strings
 const toTitleCase = (str) => {
@@ -23,18 +26,75 @@ function EWayBillDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
+  const [invoiceItems, setInvoiceItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [showUpdateVehicleModal, setShowUpdateVehicleModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [shareHovered, setShareHovered] = useState(false);
+  const [exportHovered, setExportHovered] = useState(false);
 
   useEffect(() => {
     const fetchBill = async () => {
       setIsLoading(true);
       try {
-        const response = await getEWayBillById(id);
-        setBill(response.data);
+        const [billResponse, itemsMasterResponse, allInvoicesResponse] = await Promise.all([
+          getEWayBillById(id),
+          getAllItems(),
+          getAllSalesInvoices(),
+        ]);
+        
+        const bill = billResponse.data;
+        setBill(bill);
+
+        // Find the invoice by invoice number
+        if (bill.invoiceNumber) {
+          try {
+            const allInvoices = allInvoicesResponse.data;
+            const matchedInvoice = allInvoices.find((inv) => inv.invoiceNumber === bill.invoiceNumber);
+
+            if (matchedInvoice) {
+              const itemsMaster = itemsMasterResponse.data;
+
+              // Transform invoice items with master item data
+              const transformedItems = (matchedInvoice.items || []).map((itemLine) => {
+                const matchedItem = itemsMaster.find((i) => i.id === itemLine.itemId);
+
+                const rate = itemLine.rate || 0;
+                const qty = itemLine.quantity || 0;
+                const discount = itemLine.discount || 0;
+                const gstRate = itemLine.gstRate || 0;
+
+                // Calculate item amount
+                const itemSubtotal = qty * rate;
+                const taxableBase = itemSubtotal - discount;
+                const itemGst = taxableBase * (gstRate / 100);
+                const itemTotal = taxableBase + itemGst;
+
+                return {
+                  itemName: matchedItem ? matchedItem.name : `Item #${itemLine.itemId}`,
+                  description: matchedItem?.description || "-",
+                  hsnCode: matchedItem?.hsn || "-",
+                  quantity: qty,
+                  unit: itemLine.unit,
+                  rate: rate,
+                  discountAmount: discount,
+                  gstRate: gstRate,
+                  amount: itemTotal,
+                };
+              });
+
+              setInvoiceItems(transformedItems);
+            } else {
+              console.warn("No invoice found with number:", bill.invoiceNumber);
+              setInvoiceItems([]);
+            }
+          } catch (error) {
+            console.error("Error fetching invoice items:", error);
+            setInvoiceItems([]);
+          }
+        }
       } catch (error) {
         console.error("Error fetching e-way bill:", error);
         setBill(null);
@@ -108,7 +168,39 @@ function EWayBillDetail() {
     }
   };
 
+  const handleShareInvoice = async () => {
+    const billDetails = `E-Way Bill: ${bill.ewayBillNumber}\nStatus: ${bill.status}\nFrom: ${bill.sellerBusinessName}\nTo: ${bill.buyerName}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "E-Way Bill",
+          text: billDetails,
+        });
+      } catch (error) {
+        console.error("Share error:", error);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(billDetails);
+      alert("E-Way Bill details copied to clipboard");
+    }
+  };
+
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleString("en-IN", {
       year: "numeric",
@@ -119,125 +211,322 @@ function EWayBillDetail() {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return { bg: "#d4edda", text: "#155724" };
-      case "EXPIRED":
-        return { bg: "#f8d7da", text: "#721c24" };
-      case "CANCELLED":
-        return { bg: "#e2e3e5", text: "#383d41" };
-      default:
-        return { bg: "#e2e3e5", text: "#383d41" };
-    }
+  const formatCurrency = (amount) => {
+    if (!amount) return "₹0.00";
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+    }).format(amount);
   };
 
   if (isLoading) return <div style={{ padding: "24px", textAlign: "center" }}>Loading...</div>;
   if (!bill) return <div style={{ padding: "24px", color: "red" }}>E-Way Bill not found</div>;
 
-  const statusColor = getStatusColor(bill.status);
   const isActive = bill.status === "ACTIVE";
 
-  // Calculate remaining days for UI
-  const now = new Date();
-  const expiry = new Date(bill.validUntil);
-  const diffTime = expiry - now;
-  const remainingDays = diffTime > 0 ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
-
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "24px" }}>
-      {/* Header */}
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
+      {/* Header with Back and Delete Button */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-            <h1 style={{ margin: "0", fontSize: "24px", fontWeight: "700" }}>
-              {bill.ewayBillNumber}
-            </h1>
-            <span style={{ padding: "6px 12px", backgroundColor: statusColor.bg, color: statusColor.text, borderRadius: "20px", fontSize: "12px", fontWeight: "600" }}>
-              {toTitleCase(bill.status)}
-            </span>
-          </div>
-          <p style={{ margin: "0", fontSize: "13px", color: "#999" }}>
-            Created: {formatDate(bill.createdAt)}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={handleDelete} style={{ padding: "8px 16px", backgroundColor: "#dc3545", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
-            <AppIcon name="trash" size={14} /> Delete
-          </button>
-        </div>
+        <button onClick={() => navigate("/app/e-way-bills")} style={{ padding: "8px 16px", backgroundColor: "#6c757d", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          ← Back to List
+        </button>
+        <button onClick={handleDelete} style={{ padding: "8px 16px", backgroundColor: "#dc3545", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+          <AppIcon name="trash" size={14} /> Delete
+        </button>
       </div>
 
-      {/* Details Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "24px" }}>
-        {/* Invoice Info */}
-        <div style={{ padding: "20px", backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700" }}>Invoice Details</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Invoice Number</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.invoiceNumber}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Invoice Date</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.invoiceDate}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Buyer</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.buyerName || "-"}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Total Value</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>₹{bill.totalInvoiceValue?.toLocaleString("en-IN")}</p></div>
-          </div>
+      {/* Share and Export Buttons */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", width: "210mm", margin: "0 auto 20px auto", marginBottom: "20px" }}>
+        <button
+          onMouseEnter={() => setShareHovered(true)}
+          onMouseLeave={() => setShareHovered(false)}
+          onClick={handleShareInvoice}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: shareHovered ? "#0c3d66" : "#1a3a52",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "13px",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            transform: shareHovered ? "translateY(-2px)" : "translateY(0)",
+            boxShadow: shareHovered ? "0 4px 12px rgba(0, 0, 0, 0.15)" : "0 2px 4px rgba(0, 0, 0, 0.1)"
+          }}
+        >
+          Share
+        </button>
+        <button
+          onMouseEnter={() => setExportHovered(true)}
+          onMouseLeave={() => setExportHovered(false)}
+          onClick={handleExportPDF}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: exportHovered ? "#0c3d66" : "#1a3a52",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "13px",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            transform: exportHovered ? "translateY(-2px)" : "translateY(0)",
+            boxShadow: exportHovered ? "0 4px 12px rgba(0, 0, 0, 0.15)" : "0 2px 4px rgba(0, 0, 0, 0.1)"
+          }}
+        >
+          Export as PDF
+        </button>
+      </div>
+
+      {/* A4 DOCUMENT */}
+      <div style={{
+        backgroundColor: "white",
+        border: "2px solid #1a3a52",
+        borderRadius: "0px",
+        width: "210mm",
+        height: "297mm",
+        margin: "0 auto",
+        padding: "0",
+        fontFamily: "Arial, sans-serif",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column"
+      }}>
+        
+        {/* SECTION 1: HEADER - E-Way Bill Title */}
+        <div style={{
+          padding: "20px",
+          minHeight: "80px",
+          display: "flex",
+          alignItems: "center",
+          borderBottom: "2px solid #1a3a52"
+        }}>
+          <h1 style={{ margin: "0", fontSize: "35px", fontWeight: "bold", color: "#0066cc", letterSpacing: "2px" }}>
+            E-Way Bill
+          </h1>
         </div>
 
-        {/* Validity */}
-        <div style={{ padding: "20px", backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700" }}>Validity</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Valid From</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{formatDate(bill.validFrom)}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Valid Until</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{formatDate(bill.validUntil)}</p></div>
-            <div style={{ padding: "12px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-              <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#999" }}>Days Remaining</p>
-              <p style={{ margin: "0", fontSize: "18px", fontWeight: "700", color: remainingDays > 5 ? "#28a745" : remainingDays > 0 ? "#ffc107" : "#dc3545" }}>
-                {remainingDays} days
-              </p>
+        {/* SECTION 2: E-WAY BILL DETAILS */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          borderBottom: "2px solid #1a3a52"
+        }}>
+          {/* Left Column */}
+          <div style={{ padding: "15px 20px", borderRight: "2px solid #1a3a52", fontSize: "12px" }}>
+            <div style={{ marginBottom: "8px" }}>
+              <span style={{ fontWeight: "bold", display: "inline-block", width: "100px" }}>E-Way Bill No</span>
+              <span>{bill.ewayBillNumber}</span>
+            </div>
+            <div style={{ marginBottom: "8px" }}>
+              <span style={{ fontWeight: "bold", display: "inline-block", width: "100px" }}>Generated Date</span>
+              <span>{formatDateTime(bill.createdAt)}</span>
+            </div>
+          </div>
+          {/* Right Column */}
+          <div style={{ padding: "15px 20px", fontSize: "12px" }}>
+            <div style={{ marginBottom: "8px" }}>
+              <span style={{ fontWeight: "bold", display: "inline-block", width: "100px" }}>Valid From</span>
+              <span>{formatDateTime(bill.validFrom)}</span>
+            </div>
+            <div style={{ marginBottom: "8px" }}>
+              <span style={{ fontWeight: "bold", display: "inline-block", width: "100px" }}>Valid Until</span>
+              <span>{formatDateTime(bill.validUntil)}</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Transport & Vehicle */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "24px" }}>
-        <div style={{ padding: "20px", backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700" }}>Transport</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Mode</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{toTitleCase(bill.transportMode)}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Distance</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.distanceKm} km</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Vehicle Number</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.vehicleNumber}</p></div>
+        {/* SECTION 3: ADDRESS DETAILS */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          borderBottom: "2px solid #1a3a52"
+        }}>
+          {/* From (Seller) */}
+          <div style={{ padding: "20px", borderRight: "2px solid #1a3a52" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>
+              FROM (SELLER)
+            </h4>
+            <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#333" }}>
+              <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "14px" }}>{bill.sellerBusinessName || "-"}</p>
+              <p style={{ margin: "0 0 2px 0" }}>GSTIN: {bill.sellerGstin || "-"}</p>
+              <p style={{ margin: "0", color: "#666" }}>State: {bill.sellerState || "-"}</p>
+            </div>
+          </div>
+          {/* To (Buyer) */}
+          <div style={{ padding: "20px" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>
+              TO (BUYER)
+            </h4>
+            <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#333" }}>
+              <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "14px" }}>{bill.buyerName || "-"}</p>
+              <p style={{ margin: "0 0 2px 0" }}>GSTIN: {bill.buyerGstin || "-"}</p>
+              <p style={{ margin: "0", color: "#666" }}>State: {bill.buyerState || "-"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: GOODS DETAILS TABLE */}
+        <div style={{ borderBottom: "2px solid #1a3a52", overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+            <thead>
+              <tr style={{ backgroundColor: "#0c3d66", color: "white" }}>
+                <th style={{ padding: "14px", textAlign: "left", borderRight: "1px solid #1a3a52", width: "5%" }}>#</th>
+                <th style={{ padding: "14px", textAlign: "left", borderRight: "1px solid #1a3a52" }}>Item & Description</th>
+                <th style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #1a3a52", width: "8%" }}>Qty</th>
+                <th style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #1a3a52", width: "8%" }}>Unit</th>
+                <th style={{ padding: "14px", textAlign: "right", borderRight: "1px solid #1a3a52", width: "10%" }}>Rate</th>
+                <th style={{ padding: "14px", textAlign: "right", borderRight: "1px solid #1a3a52", width: "10%" }}>Discount</th>
+                <th style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #1a3a52", width: "8%" }}>GST %</th>
+                <th style={{ padding: "14px", textAlign: "right", width: "12%" }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoiceItems.length > 0 ? (
+                invoiceItems.map((item, index) => (
+                  <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+                    <td style={{ padding: "14px", textAlign: "left", borderRight: "1px solid #eee" }}>{index + 1}</td>
+                    <td style={{ padding: "14px", borderRight: "1px solid #eee" }}>
+                      <div style={{ fontWeight: "bold" }}>{item.itemName}</div>
+                      {item.description && item.description !== "-" && (
+                        <div style={{ fontSize: "11px", color: "#666", marginTop: "2px", marginBottom: "4px" }}>
+                          {item.description}
+                        </div>
+                      )}
+                      <div style={{ fontSize: "11px", color: "#666" }}>HSN: {item.hsnCode || "-"}</div>
+                    </td>
+                    <td style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #eee" }}>{item.quantity}</td>
+                    <td style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #eee" }}>{item.unit}</td>
+                    <td style={{ padding: "14px", textAlign: "right", borderRight: "1px solid #eee" }}>{formatCurrency(item.rate)}</td>
+                    <td style={{ padding: "14px", textAlign: "right", borderRight: "1px solid #eee" }}>{formatCurrency(item.discountAmount)}</td>
+                    <td style={{ padding: "14px", textAlign: "center", borderRight: "1px solid #eee" }}>{item.gstRate}%</td>
+                    <td style={{ padding: "14px", textAlign: "right" }}>{formatCurrency(item.amount)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr style={{ borderBottom: "1px solid #ddd" }}>
+                  <td colSpan="8" style={{ padding: "14px", textAlign: "center", color: "#999" }}>
+                    No items
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* SECTION 4B: TOTALS */}
+        <div style={{ borderBottom: "2px solid #1a3a52", backgroundColor: "#f9f9f9" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "150px" }}>
+            {/* Left Column - Subtotal & Total Discount */}
+            <div style={{ padding: "20px", borderRight: "2px solid #1a3a52" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", fontSize: "13px" }}>
+                {/* Subtotal */}
+                <div style={{ textAlign: "left" }}>Subtotal:</div>
+                <div style={{ textAlign: "right", fontWeight: "600" }}>
+                  {formatCurrency(
+                    invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0)
+                  )}
+                </div>
+
+                {/* Total Discount */}
+                <div style={{ textAlign: "left" }}>Total Discount:</div>
+                <div style={{ textAlign: "right", fontWeight: "600" }}>
+                  {formatCurrency(
+                    invoiceItems.reduce((sum, item) => sum + item.discountAmount, 0)
+                  )}
+                </div>
+              </div>
+            </div>
             
-            {/* Added Fields */}
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Transporter Name</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.transporterName || "-"}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Transporter ID</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.transporterId || "-"}</p></div>
-            <div><p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999" }}>Doc No & Date</p><p style={{ margin: "0", fontSize: "14px", fontWeight: "600" }}>{bill.transporterDocumentNo || "-"} {bill.transporterDocumentDate ? `(${formatDate(bill.transporterDocumentDate)})` : ""}</p></div>
+            {/* Right Column - Taxable Value, Total GST, Grand Total */}
+            <div style={{ padding: "20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", fontSize: "13px" }}>
+                {/* Taxable Value */}
+                <div style={{ textAlign: "left", fontWeight: "bold" }}>
+                  Taxable Value:
+                </div>
+                <div style={{ textAlign: "right", fontWeight: "bold" }}>
+                  {formatCurrency(
+                    invoiceItems.reduce((sum, item) => {
+                      const taxableBase = item.quantity * item.rate - item.discountAmount;
+                      return sum + taxableBase;
+                    }, 0)
+                  )}
+                </div>
+
+                {/* Total GST */}
+                <div style={{ textAlign: "left" }}>Total GST:</div>
+                <div style={{ textAlign: "right", fontWeight: "600" }}>
+                  {formatCurrency(
+                    invoiceItems.reduce((sum, item) => {
+                      const taxableBase = item.quantity * item.rate - item.discountAmount;
+                      const itemGst = taxableBase * (item.gstRate / 100);
+                      return sum + itemGst;
+                    }, 0)
+                  )}
+                </div>
+
+                {/* Grand Total */}
+                <div style={{ textAlign: "left", fontWeight: "bold", fontSize: "14px", paddingTop: "8px", borderTop: "2px solid #1a3a52" }}>
+                  Grand Total:
+                </div>
+                <div style={{ textAlign: "right", fontWeight: "bold", fontSize: "14px", paddingTop: "8px", borderTop: "2px solid #1a3a52" }}>
+                  {formatCurrency(
+                    invoiceItems.reduce((sum, item) => sum + item.amount, 0)
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style={{ padding: "20px", backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700" }}>Seller & Buyer</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {/* Seller */}
-            <div style={{ borderBottom: "1px solid #eee", paddingBottom: "12px", marginBottom: "8px" }}>
-              <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999", fontWeight: "700" }}>FROM (SELLER)</p>
-              <div><p style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "600" }}>{bill.sellerBusinessName || "-"}</p></div>
-              <div><p style={{ margin: "0", fontSize: "13px", color: "#555" }}>GSTIN: {bill.sellerGstin || "-"}</p></div>
-              <div><p style={{ margin: "0", fontSize: "13px", color: "#555" }}>State: {bill.sellerState || "-"}</p></div>
+        {/* SECTION 5: VEHICLE & TRANSPORT DETAILS */}
+        <div style={{ flex: "1", padding: "20px", borderTop: "1px solid #ddd" }}>
+          <h4 style={{ margin: "0 0 16px 0", fontSize: "17px", fontWeight: "bold", color: "#1a3a52" }}>
+            VEHICLE & TRANSPORT DETAILS
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", fontSize: "14px" }}>
+            {/* Left Column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Mode of Transport</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>{toTitleCase(bill.transportMode)}</p>
+              </div>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Distance (KM)</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>{bill.distanceKm}</p>
+              </div>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Vehicle Number</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>{bill.vehicleNumber}</p>
+              </div>
             </div>
-
-            {/* Buyer */}
-            <div>
-              <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#999", fontWeight: "700" }}>TO (BUYER)</p>
-              <div><p style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "600" }}>{bill.buyerName || "-"}</p></div>
-              <div><p style={{ margin: "0", fontSize: "13px", color: "#555" }}>GSTIN: {bill.buyerGstin || "-"}</p></div>
-              <div><p style={{ margin: "0", fontSize: "13px", color: "#555" }}>State: {bill.buyerState || "-"}</p></div>
+            {/* Right Column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Transporter Name</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>{bill.transporterName || "-"}</p>
+              </div>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Transporter ID</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>{bill.transporterId || "-"}</p>
+              </div>
+              <div>
+                <p style={{ margin: "0 0 3px 0", fontSize: "13px", fontWeight: "bold", color: "#1a3a52" }}>Document No & Date</p>
+                <p style={{ margin: "0", fontSize: "14px", color: "#333" }}>
+                  {bill.transporterDocumentNo || "-"} {bill.transporterDocumentDate ? `(${formatDate(bill.transporterDocumentDate)})` : ""}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Actions */}
+      {/* ACTION BUTTONS */}
       {isActive && (
-        <div style={{ padding: "20px", backgroundColor: "#f8f9fa", borderRadius: "8px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ padding: "20px", backgroundColor: "#f8f9fa", borderRadius: "8px", display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "20px" }}>
           <button onClick={() => setShowExtendModal(true)} style={{ padding: "10px 20px", backgroundColor: "#007bff", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
             Extend Validity
           </button>
@@ -249,12 +538,6 @@ function EWayBillDetail() {
           </button>
         </div>
       )}
-
-      <div style={{ marginTop: "16px" }}>
-        <button onClick={() => navigate("/app/e-way-bills")} style={{ padding: "10px 20px", backgroundColor: "#6c757d", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
-          Back to List
-        </button>
-      </div>
 
       {/* Modals */}
       <ExtendValidityModal

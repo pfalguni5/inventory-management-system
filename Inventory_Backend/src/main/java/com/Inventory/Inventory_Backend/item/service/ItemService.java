@@ -44,10 +44,10 @@ public class ItemService {
 
     private final BusinessContext businessContext;
 
-    private Long getCurrentBusinessId(){
+    private Long getCurrentBusinessId() {
         Long businessId = businessContext.getBusinessId();
 
-        if(businessId == null){
+        if (businessId == null) {
             throw new RuntimeException("Business ID not found in context");
         }
 
@@ -60,8 +60,7 @@ public class ItemService {
     @Transactional(readOnly = true)
     public List<ItemResponseDTO> getAll() {
 
-        List<Item> items =
-                repository.findByBusinessIdAndIsActiveTrue(getCurrentBusinessId());
+        List<Item> items = repository.findByBusinessIdAndIsActiveTrue(getCurrentBusinessId());
 
         return mapper.toResponseList(items);
     }
@@ -84,13 +83,12 @@ public class ItemService {
 
         Long businessId = getCurrentBusinessId();
 
-        //  Prevent duplicate item names
+        // Prevent duplicate item names
         if (repository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue(
                 dto.getName().trim(), businessId)) {
 
             throw new RuntimeException(
-                    "Item already exists with name: " + dto.getName()
-            );
+                    "Item already exists with name: " + dto.getName());
         }
 
         if ("service".equalsIgnoreCase(dto.getType())
@@ -106,12 +104,11 @@ public class ItemService {
         Item savedItem = repository.save(entity);
 
         // Opening stock
-        BigDecimal openingStock =
-                dto.getOpeningStock() != null
-                        ? dto.getOpeningStock()
-                        : BigDecimal.ZERO;
+        BigDecimal openingStock = dto.getOpeningStock() != null
+                ? dto.getOpeningStock()
+                : BigDecimal.ZERO;
 
-        if("goods".equalsIgnoreCase(savedItem.getType())){
+        if ("goods".equalsIgnoreCase(savedItem.getType())) {
             // 1️⃣ Create stock snapshot
             Stock stock = new Stock();
 
@@ -140,7 +137,6 @@ public class ItemService {
             }
 
         }
-
 
         return mapper.toResponse(savedItem);
     }
@@ -179,8 +175,7 @@ public class ItemService {
     // =========================
     public void toggleFavorite(Long id) {
 
-        int updated =
-                repository.toggleFavorite(id, getCurrentBusinessId());
+        int updated = repository.toggleFavorite(id, getCurrentBusinessId());
 
         if (updated == 0) {
             throw new EntityNotFoundException("Item not found: " + id);
@@ -194,11 +189,10 @@ public class ItemService {
 
         Long businessId = getCurrentBusinessId();
 
-        List<Item> items =
-                repository.findAllById(ids)
-                        .stream()
-                        .filter(i -> businessId.equals(i.getBusinessId()))
-                        .toList();
+        List<Item> items = repository.findAllById(ids)
+                .stream()
+                .filter(i -> businessId.equals(i.getBusinessId()))
+                .toList();
 
         if (items.isEmpty()) {
             throw new EntityNotFoundException("No items found for given IDs");
@@ -217,8 +211,6 @@ public class ItemService {
         return repository
                 .findByIdAndBusinessId(id, getCurrentBusinessId())
                 .filter(Item::getIsActive)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Item not found: " + id)
-                );
+                .orElseThrow(() -> new EntityNotFoundException("Item not found: " + id));
     }
 }

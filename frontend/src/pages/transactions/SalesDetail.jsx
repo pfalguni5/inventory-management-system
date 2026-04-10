@@ -12,6 +12,8 @@ function SalesDetail() {
   const [sale, setSale] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteHovered, setDeleteHovered] = useState(false);
+  const [shareHovered, setShareHovered] = useState(false);
+  const [exportHovered, setExportHovered] = useState(false);
 
   const [party, setParty] = useState(null);
 
@@ -126,16 +128,6 @@ function SalesDetail() {
     }).format(amount);
   };
 
-  const getStatusBadge = (status) => {
-    const statusStyles = {
-      Completed: { bg: "#d4edda", color: "#155724" },
-      Partial: { bg: "#d1ecf1", color: "#0c5460" },
-      Pending: { bg: "#fff3cd", color: "#856404" },
-      Cancelled: { bg: "#f8d7da", color: "#721c24" },
-    };
-    return statusStyles[status] || statusStyles.Pending;
-  };
-
   const handleDeleteInvoice = async () => {
     const confirmDelete = window.confirm(`Are you sure you want to delete invoice "${sale.invoiceNumber}"?`);
 
@@ -152,6 +144,26 @@ function SalesDetail() {
         "Failed to delete sales invoice"
       );
     }
+  };
+
+  const handleShareInvoice = () => {
+    const shareText = `Sales Invoice ${sale.invoiceNumber} - ${sale.customer} - ₹${formatCurrency(sale.total)}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: `Invoice ${sale.invoiceNumber}`,
+        text: shareText,
+      }).catch(err => console.log("Error sharing:", err));
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(shareText);
+      alert("Invoice details copied to clipboard!");
+    }
+  };
+
+  const handleExportPDF = () => {
+    // Using the browser's print functionality to save as PDF
+    window.print();
   };
 
   if (isLoading) {
@@ -173,8 +185,6 @@ function SalesDetail() {
     );
   }
 
-  const statusBadge = getStatusBadge(sale.status);
-
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -188,31 +198,84 @@ function SalesDetail() {
   return (
     <div style={{ padding: "20px", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
       {/* Control buttons */}
-      <div style={{ marginBottom: "20px", display: "flex", gap: "8px" }}>
-        <button className="btn-back" onClick={() => navigate("/app/sales")}>
-          <AppIcon name="back" /> Back
-        </button>
-        <button className="btn-edit-top" onClick={() => navigate(`/app/sales/edit/${sale.id}`)}>
-          <AppIcon name="edit" /> Edit
-        </button>
-        <button className="btn-delete" 
-                onClick={handleDeleteInvoice}
-                onMouseEnter={() => setDeleteHovered(true)}
-                onMouseLeave={() => setDeleteHovered(false)}
-                style={{
-                  backgroundColor: "#f44336",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  transform: deleteHovered ? "scale(1.05)" : "scale(1)",
-                  boxShadow: deleteHovered ? "0 4px 12px rgba(244, 67, 54, 0.4)" : "none",
-                }}>
-          <AppIcon name="trash" /> Delete
-        </button>
+      <div style={{ marginBottom: "20px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        {/* Left buttons */}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button className="btn-back" onClick={() => navigate("/app/sales")}>
+            <AppIcon name="back" /> Back
+          </button>
+          <button className="btn-edit-top" onClick={() => navigate(`/app/sales/edit/${sale.id}`)}>
+            <AppIcon name="edit" /> Edit
+          </button>
+          <button className="btn-delete" 
+                  onClick={handleDeleteInvoice}
+                  onMouseEnter={() => setDeleteHovered(true)}
+                  onMouseLeave={() => setDeleteHovered(false)}
+                  style={{
+                    backgroundColor: "#f44336",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    transform: deleteHovered ? "scale(1.05)" : "scale(1)",
+                    boxShadow: deleteHovered ? "0 4px 12px rgba(244, 67, 54, 0.4)" : "none",
+                  }}>
+            <AppIcon name="trash" /> Delete
+          </button>
+        </div>
       </div>
+
+      {/* INVOICE CONTAINER WITH BUTTONS */}
+      <div style={{ position: "relative", width: "210mm", margin: "0 auto" }}>
+        {/* Buttons above invoice (right side) */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "20px" }}>
+          <button 
+            onClick={handleShareInvoice}
+            onMouseEnter={() => setShareHovered(true)}
+            onMouseLeave={() => setShareHovered(false)}
+            style={{
+              backgroundColor: shareHovered ? "#0c3d66" : "#1a3a52",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              fontSize: "13px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transform: shareHovered ? "translateY(-2px)" : "translateY(0)",
+              boxShadow: shareHovered ? "0 4px 12px rgba(26, 58, 82, 0.4)" : "none"
+            }}>
+            <AppIcon name="share" size={14} /> Share
+          </button>
+          <button 
+            onClick={handleExportPDF}
+            onMouseEnter={() => setExportHovered(true)}
+            onMouseLeave={() => setExportHovered(false)}
+            style={{
+              backgroundColor: exportHovered ? "#0c3d66" : "#1a3a52",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              fontSize: "13px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transform: exportHovered ? "translateY(-2px)" : "translateY(0)",
+              boxShadow: exportHovered ? "0 4px 12px rgba(26, 58, 82, 0.4)" : "none"
+            }}>
+            <AppIcon name="download" size={14} /> Export PDF
+          </button>
+        </div>
 
       {/* INVOICE */}
       <div style={{
@@ -475,6 +538,7 @@ function SalesDetail() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

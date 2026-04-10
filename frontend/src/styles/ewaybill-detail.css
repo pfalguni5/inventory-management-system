@@ -1,0 +1,229 @@
+/* E-Way Bill Detail A4 Document Styling */
+
+/* Media Print Rule for A4 Format */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .ewaybill-document {
+    box-shadow: none;
+    border: none;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* A4 Page Size */
+.ewaybill-document {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  padding: 0;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Section */
+.ewaybill-header {
+  padding: 20px;
+  border-bottom: 2px solid #1a3a52;
+  display: flex;
+  align-items: center;
+  min-height: 80px;
+}
+
+.ewaybill-header h1 {
+  margin: 0;
+  font-size: 35px;
+  font-weight: bold;
+  color: #0066cc;
+  letter-spacing: 2px;
+}
+
+/* Details Section */
+.ewaybill-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid #1a3a52;
+  border-top: 1px solid #ddd;
+}
+
+.ewaybill-details-left,
+.ewaybill-details-right {
+  padding: 15px 20px;
+  font-size: 12px;
+}
+
+.ewaybill-details-left {
+  border-right: 2px solid #1a3a52;
+}
+
+.ewaybill-details-item {
+  margin-bottom: 8px;
+}
+
+.ewaybill-details-item span:first-child {
+  font-weight: bold;
+  display: inline-block;
+  width: 100px;
+}
+
+/* Address Section */
+.ewaybill-address {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid #1a3a52;
+}
+
+.address-column {
+  padding: 20px;
+}
+
+.address-column:first-child {
+  border-right: 2px solid #1a3a52;
+}
+
+.address-column h4 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: #1a3a52;
+}
+
+.address-column p {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.address-column p:first-of-type {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.address-column p.label {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Goods Details Table */
+.ewaybill-goods {
+  border-bottom: 2px solid #1a3a52;
+  overflow: hidden;
+}
+
+.ewaybill-goods table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ewaybill-goods thead {
+  background-color: #0c3d66;
+  color: white;
+}
+
+.ewaybill-goods th {
+  padding: 14px;
+  text-align: left;
+  border-right: 1px solid #1a3a52;
+  font-weight: 600;
+}
+
+.ewaybill-goods th:last-child {
+  border-right: none;
+}
+
+.ewaybill-goods tbody tr {
+  border-bottom: 1px solid #ddd;
+}
+
+.ewaybill-goods td {
+  padding: 14px;
+  border-right: 1px solid #eee;
+}
+
+.ewaybill-goods td:last-child {
+  border-right: none;
+}
+
+.item-name {
+  font-weight: bold;
+}
+
+.item-description {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.item-hsn {
+  font-size: 11px;
+  color: #666;
+}
+
+.cell-center {
+  text-align: center;
+}
+
+.cell-right {
+  text-align: right;
+}
+
+/* Transport Details Section */
+.ewaybill-transport {
+  flex: 1;
+  padding: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.ewaybill-transport h4 {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: #1a3a52;
+}
+
+.transport-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  font-size: 12px;
+}
+
+.transport-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transport-detail-item p {
+  margin: 0;
+}
+
+.transport-detail-item .label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #1a3a52;
+}
+
+.transport-detail-item .value {
+  font-size: 12px;
+  color: #333;
+}
+
+/* Responsive Design - Print Friendly */
+@media (max-width: 900px) {
+  .ewaybill-document {
+    width: 100%;
+    height: auto;
+  }
+}
