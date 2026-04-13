@@ -2,13 +2,23 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppIcon from "../common/AppIcon";
 import api from "../../services/api";
+import { getProfile } from "../../services/profileService";
+import notificationService from "../../services/notificationService";
 
 function Navbar({ toggleSidebar }) {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState("");
-  const [ businesses, setBusinesses ] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
+  const [user, setUser] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "",
+  });
+
+  const [notifications, setNotifications] = useState([]);
   
   const notificationDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -28,9 +38,9 @@ function Navbar({ toggleSidebar }) {
     setShowProfile(false);
   };
 
-  // Close dropdowns when clicking outside or pressing Escape
   useEffect(() => {
-    const fetchBusinesses = async () => {
+    const fetchData = async () => {
+      // Fetch businesses
       try {
         const res = await api.get("/business/my");
         const data = res.data;
@@ -41,27 +51,48 @@ function Navbar({ toggleSidebar }) {
 
         if (savedBusinessId) {
           setSelectedBusiness(savedBusinessId);
-
-          // 🔥 notify whole app
           window.dispatchEvent(new Event("businessChanged"));
-
         } else if (data.length > 0) {
           const defaultId = data[0].id;
-
           setSelectedBusiness(defaultId);
           localStorage.setItem("businessId", defaultId);
-
-          // 🔥 notify whole app
           window.dispatchEvent(new Event("businessChanged"));
         }
-
       } catch (error) {
         console.error("Error fetching businesses:", error);
       }
+
+      // Fetch user profile
+      try {
+        const userData = await getProfile();
+        setUser(userData);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+
+      // Fetch notifications
+      try {
+        const notifData = await notificationService.getNotifications();
+        setNotifications(notifData);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+        setNotifications([]);
+      }
     };
 
-    fetchBusinesses();
+    fetchData();
 
+    // Refresh notifications every 30 seconds
+    const notificationInterval = setInterval(async () => {
+      try {
+        const notifData = await notificationService.getNotifications();
+        setNotifications(notifData);
+      } catch (error) {
+        console.error("Error refreshing notifications:", error);
+      }
+    }, 30000);
+
+    // Event listeners for closing dropdowns
     const handleClickOutside = (event) => {
       if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
         setShowNotifications(false);
@@ -81,7 +112,9 @@ function Navbar({ toggleSidebar }) {
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscapeKey);
 
+    // Cleanup function
     return () => {
+      clearInterval(notificationInterval);
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
@@ -110,10 +143,10 @@ function Navbar({ toggleSidebar }) {
               const businessId = e.target.value;
               setSelectedBusiness(businessId);
 
-              // 🔥 SAVE SELECTED BUSINESS
+              // SAVE SELECTED BUSINESS
               localStorage.setItem("businessId", businessId);
 
-              // 🔥 Instead of reload:
+              // Instead of reload:
               window.dispatchEvent(new Event("businessChanged"));
             }}
           >
@@ -126,7 +159,7 @@ function Navbar({ toggleSidebar }) {
           <AppIcon name="business" size="sm" color="rgba(255, 255, 255, 0.85)" />
           <span className="selector-label">Business</span>
           <span className="selector-name">
-            {businesses.find(b => b.id == selectedBusiness)?.name || ""}
+            {businesses.find(b => String(b.id) === selectedBusiness)?.name || ""}
             </span>
           <span className="biz-chevron">
             <AppIcon name="chevronDown" color="rgba(255, 255, 255, 0.88)" className="selector-caret" />
@@ -151,16 +184,30 @@ function Navbar({ toggleSidebar }) {
 
           {showNotifications && (
             <div className="dropdown-menu notification-menu">
-              <div className="dropdown-header">Notifications</div>
+              <div className="dropdown-header">
+                Notifications {notifications.filter(n => !n.isRead).length > 0 && `(${notifications.filter(n => !n.isRead).length})`}
+              </div>
               <div className="notification-items">
-                <div className="notification-item">
-                  <span className="notification-icon"><AppIcon name="warning" /></span>
-                  <p>Low stock: Item A</p>
-                </div>
-                <div className="notification-item">
-                  <span className="notification-icon"><AppIcon name="subscription" /></span>
-                  <p>Subscription expires in 5 days</p>
-                </div>
+                {notifications && notifications.filter(n => !n.isRead).length > 0 ? (
+                  notifications.filter(n => !n.isRead).map((notif) => (
+                    <div key={notif.id} className={`notification-item notification-${notif.type.toLowerCase()}`}>
+                      <span className="notification-icon">
+                        <AppIcon name={notif.icon || "info"} />
+                      </span>
+                      <div className="notification-content">
+                        <p className="notification-title">{notif.title}</p>
+                        <p className="notification-message">{notif.message}</p>
+                        <small className="notification-time">
+                          {new Date(notif.createdAt).toLocaleTimeString()}
+                        </small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="notification-item empty">
+                    <p>No notifications</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -178,7 +225,9 @@ function Navbar({ toggleSidebar }) {
             }}
             title="Profile Menu"
           >
-            <div className="profile-avatar-navbar">JD</div>
+            <div className="profile-avatar-navbar">
+              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+            </div>
           </button>
 
           {showProfile && (
@@ -188,10 +237,12 @@ function Navbar({ toggleSidebar }) {
                 className="profile-header profile-header-clickable"
                 onClick={handleProfileHeaderClick}
               >
-                <div className="profile-avatar-dropdown">JD</div>
+                <div className="profile-avatar-dropdown">
+                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                </div>
                 <div className="profile-info">
-                  <p className="profile-email">john.d@example.com</p>
-                  <p className="profile-role">Owner</p>
+                  <p className="profile-email">{user.email || "No email"}</p>
+                  <p className="profile-role">{user.role || "Owner"}</p>
                 </div>
               </button>
               

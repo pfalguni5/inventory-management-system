@@ -8,6 +8,7 @@ import com.Inventory.Inventory_Backend.stock.entity.StockMovement;
 import com.Inventory.Inventory_Backend.stock.repository.StockMovementRepository;
 import com.Inventory.Inventory_Backend.stock.repository.StockRepository;
 import com.Inventory.Inventory_Backend.stock.service.StockService;
+import com.Inventory.Inventory_Backend.notification.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,221 +24,232 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
 
-    private final StockRepository stockRepository;
-    private final StockMovementRepository movementRepository;
+        private final StockRepository stockRepository;
+        private final StockMovementRepository movementRepository;
+        private final NotificationService notificationService;
 
-    // =========================================================
-    // INCREASE STOCK (PURCHASE)
-    // =========================================================
-    @Override
-    @Transactional
-    public void increaseStock(Long businessId, Long itemId, BigDecimal quantity, Long referenceId) {
+        // =========================================================
+        // INCREASE STOCK (PURCHASE)
+        // =========================================================
+        @Override
+        @Transactional
+        public void increaseStock(Long businessId, Long itemId, BigDecimal quantity, Long referenceId) {
 
-        Stock stock = stockRepository
-                .findByBusinessIdAndItemId(businessId, itemId)
-                .orElseGet(() -> {
-                    Stock newStock = new Stock();
-                    newStock.setBusinessId(businessId);
-                    newStock.setItemId(itemId);
-                    newStock.setQuantity(BigDecimal.ZERO);
-                    newStock.setCreatedAt(LocalDateTime.now());
-                    return newStock;
-                });
+                Stock stock = stockRepository
+                                .findByBusinessIdAndItemId(businessId, itemId)
+                                .orElseGet(() -> {
+                                        Stock newStock = new Stock();
+                                        newStock.setBusinessId(businessId);
+                                        newStock.setItemId(itemId);
+                                        newStock.setQuantity(BigDecimal.ZERO);
+                                        newStock.setCreatedAt(LocalDateTime.now());
+                                        return newStock;
+                                });
 
-        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
-                .orElse(BigDecimal.ZERO);
+                BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                                .orElse(BigDecimal.ZERO);
 
-        stock.setQuantity(currentQty.add(quantity));
-        stock.setUpdatedAt(LocalDateTime.now());
+                stock.setQuantity(currentQty.add(quantity));
+                stock.setUpdatedAt(LocalDateTime.now());
 
-        stockRepository.save(stock);
+                stockRepository.save(stock);
 
-        movementRepository.save(
-                StockMovement.builder()
-                        .businessId(businessId)
-                        .itemId(itemId)
-                        .quantity(quantity)
-                        .movementType("PURCHASE_IN")
-                        .referenceType("PURCHASE_INVOICE")
-                        .referenceId(referenceId)
-                        .createdAt(LocalDateTime.now())
-                        .build()
-        );
-    }
+                movementRepository.save(
+                                StockMovement.builder()
+                                                .businessId(businessId)
+                                                .itemId(itemId)
+                                                .quantity(quantity)
+                                                .movementType("PURCHASE_IN")
+                                                .referenceType("PURCHASE_INVOICE")
+                                                .referenceId(referenceId)
+                                                .createdAt(LocalDateTime.now())
+                                                .build());
 
-    // =========================================================
-    // DECREASE STOCK (SALE)
-    // =========================================================
-    @Override
-    @Transactional
-    public void decreaseStock(Long businessId, Long itemId, BigDecimal quantity, Long referenceId) {
-
-        Stock stock = stockRepository
-                .findByBusinessIdAndItemId(businessId, itemId)
-                .orElseThrow(() ->
-                        new RuntimeException("Stock not found for item: " + itemId));
-
-        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
-                .orElse(BigDecimal.ZERO);
-
-        if (currentQty.compareTo(quantity) < 0) {
-            throw new RuntimeException("Insufficient stock for item: " + itemId);
+                // Check if stock is now back above minimum and resolve notifications
+                try {
+                        notificationService.resolveStockNotifications(businessId, itemId);
+                } catch (Exception e) {
+                        System.err.println("Error resolving stock notifications after purchase: " + e.getMessage());
+                }
         }
 
-        stock.setQuantity(currentQty.subtract(quantity));
-        stock.setUpdatedAt(LocalDateTime.now());
+        // =========================================================
+        // DECREASE STOCK (SALE)
+        // =========================================================
+        @Override
+        @Transactional
+        public void decreaseStock(Long businessId, Long itemId, BigDecimal quantity, Long referenceId) {
 
-        stockRepository.save(stock);
+                Stock stock = stockRepository
+                                .findByBusinessIdAndItemId(businessId, itemId)
+                                .orElseThrow(() -> new RuntimeException("Stock not found for item: " + itemId));
 
-        movementRepository.save(
-                StockMovement.builder()
-                        .businessId(businessId)
-                        .itemId(itemId)
-                        .quantity(quantity.negate())
-                        .movementType("SALE_OUT")
-                        .referenceType("SALES_INVOICE")
-                        .referenceId(referenceId)
-                        .createdAt(LocalDateTime.now())
-                        .build()
-        );
-    }
+                BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                                .orElse(BigDecimal.ZERO);
 
-    // =========================================================
-    // DECREASE STOCK FROM QUOTATION CONVERSION
-    // =========================================================
-    @Override
-    @Transactional
-    public void decreaseStockFromQuotation(Long businessId,
-                                           Long itemId,
-                                           BigDecimal quantity,
-                                           Long quotationId) {
+                if (currentQty.compareTo(quantity) < 0) {
+                        throw new RuntimeException("Insufficient stock for item: " + itemId);
+                }
 
-        decreaseStock(businessId, itemId, quantity, quotationId);
-    }
+                stock.setQuantity(currentQty.subtract(quantity));
+                stock.setUpdatedAt(LocalDateTime.now());
 
-    // =========================================================
-    // STOCK ADJUSTMENT
-    // =========================================================
-    @Override
-    @Transactional
-    public void adjustStock(Long businessId, StockAdjustmentRequestDTO request) {
+                stockRepository.save(stock);
 
-        Stock stock = stockRepository
-                .findByBusinessIdAndItemId(businessId, request.getItemId())
-                .orElseThrow(() ->
-                        new RuntimeException("Stock not found for item: " + request.getItemId()));
-
-        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
-                .orElse(BigDecimal.ZERO);
-
-        BigDecimal newQty = request.getNewQuantity();
-
-        if (newQty == null) {
-            throw new RuntimeException("New quantity is required for stock adjustment");
+                movementRepository.save(
+                                StockMovement.builder()
+                                                .businessId(businessId)
+                                                .itemId(itemId)
+                                                .quantity(quantity.negate())
+                                                .movementType("SALE_OUT")
+                                                .referenceType("SALES_INVOICE")
+                                                .referenceId(referenceId)
+                                                .createdAt(LocalDateTime.now())
+                                                .build());
         }
 
-        BigDecimal adjustment = newQty.subtract(currentQty);
+        // =========================================================
+        // DECREASE STOCK FROM QUOTATION CONVERSION
+        // =========================================================
+        @Override
+        @Transactional
+        public void decreaseStockFromQuotation(Long businessId,
+                        Long itemId,
+                        BigDecimal quantity,
+                        Long quotationId) {
 
-        stock.setQuantity(newQty);
-        stock.setUpdatedAt(LocalDateTime.now());
-
-        stockRepository.save(stock);
-
-        movementRepository.save(
-                StockMovement.builder()
-                        .businessId(businessId)
-                        .itemId(request.getItemId())
-                        .quantity(adjustment)
-                        .movementType("ADJUSTMENT")
-                        .referenceType("MANUAL_ADJUSTMENT")
-                        .remarks(request.getReason())
-                        .createdAt(LocalDateTime.now())
-                        .build()
-        );
-    }
-
-    // =========================================================
-    // GET STOCK FOR ITEM
-    // =========================================================
-    @Override
-    public StockResponseDTO getStock(Long businessId, Long itemId) {
-
-        Stock stock = stockRepository
-                .findByBusinessIdAndItemId(businessId, itemId)
-                .orElse(null);
-
-        if (stock == null){
-            return StockResponseDTO.builder()
-                    .businessId(businessId)
-                    .itemId(itemId)
-                    .quantity(BigDecimal.ZERO)
-                    .build();
+                decreaseStock(businessId, itemId, quantity, quotationId);
         }
 
-        return StockResponseDTO.builder()
-                .businessId(stock.getBusinessId())
-                .itemId(stock.getItemId())
-                .quantity(
-                        stock.getQuantity() != null
-                        ? stock.getQuantity()
-                        : BigDecimal.ZERO)
-                .build();
-    }
+        // =========================================================
+        // STOCK ADJUSTMENT
+        // =========================================================
+        @Override
+        @Transactional
+        public void adjustStock(Long businessId, StockAdjustmentRequestDTO request) {
 
-    // =========================================================
-    // GET ALL STOCK
-    // =========================================================
-    @Override
-    public List<StockResponseDTO> getAllStock(Long businessId) {
+                Stock stock = stockRepository
+                                .findByBusinessIdAndItemId(businessId, request.getItemId())
+                                .orElseThrow(() -> new RuntimeException(
+                                                "Stock not found for item: " + request.getItemId()));
 
-        return stockRepository
-                .findByBusinessId(businessId)
-                .stream()
-                .map(stock -> StockResponseDTO.builder()
-                        .businessId(stock.getBusinessId())
-                        .itemId(stock.getItemId())
-                        .quantity(stock.getQuantity())
-                        .build())
-                .toList();
-    }
+                BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                                .orElse(BigDecimal.ZERO);
 
-    // =========================================================
-    // GET LOW STOCK ITEMS
-    // =========================================================
-    @Override
-    public List<StockResponseDTO> getLowStockItems(Long businessId) {
+                BigDecimal newQty = request.getNewQuantity();
 
-        return stockRepository
-                .findLowStockItems(businessId)
-                .stream()
-                .map(stock -> StockResponseDTO.builder()
-                        .businessId(stock.getBusinessId())
-                        .itemId(stock.getItemId())
-                        .quantity(stock.getQuantity())
-                        .build())
-                .toList();
-    }
+                if (newQty == null) {
+                        throw new RuntimeException("New quantity is required for stock adjustment");
+                }
 
-    // =========================================================
-    // STOCK MOVEMENT HISTORY
-    // =========================================================
-    @Override
-    public List<StockMovementResponseDTO> getStockMovements(Long businessId, Long itemId) {
+                BigDecimal adjustment = newQty.subtract(currentQty);
 
-        return movementRepository
-                .findByBusinessIdAndItemIdOrderByCreatedAtDesc(businessId, itemId)
-                .stream()
-                .map(m -> StockMovementResponseDTO.builder()
-                        .id(m.getId())
-                        .businessId(m.getBusinessId())
-                        .itemId(m.getItemId())
-                        .quantity(m.getQuantity())
-                        .movementType(m.getMovementType())
-                        .referenceType(m.getReferenceType())
-                        .referenceId(m.getReferenceId())
-                        .remarks(m.getRemarks())
-                        .createdAt(m.getCreatedAt())
-                        .build())
-                .toList();
-    }
+                stock.setQuantity(newQty);
+                stock.setUpdatedAt(LocalDateTime.now());
+
+                stockRepository.save(stock);
+
+                movementRepository.save(
+                                StockMovement.builder()
+                                                .businessId(businessId)
+                                                .itemId(request.getItemId())
+                                                .quantity(adjustment)
+                                                .movementType("ADJUSTMENT")
+                                                .referenceType("MANUAL_ADJUSTMENT")
+                                                .remarks(request.getReason())
+                                                .createdAt(LocalDateTime.now())
+                                                .build());
+
+                // Check if stock is now back above minimum and resolve notifications
+                try {
+                        notificationService.resolveStockNotifications(businessId, request.getItemId());
+                } catch (Exception e) {
+                        System.err.println("Error resolving stock notifications after adjustment: " + e.getMessage());
+                }
+        }
+
+        // =========================================================
+        // GET STOCK FOR ITEM
+        // =========================================================
+        @Override
+        public StockResponseDTO getStock(Long businessId, Long itemId) {
+
+                Stock stock = stockRepository
+                                .findByBusinessIdAndItemId(businessId, itemId)
+                                .orElse(null);
+
+                if (stock == null) {
+                        return StockResponseDTO.builder()
+                                        .businessId(businessId)
+                                        .itemId(itemId)
+                                        .quantity(BigDecimal.ZERO)
+                                        .build();
+                }
+
+                return StockResponseDTO.builder()
+                                .businessId(stock.getBusinessId())
+                                .itemId(stock.getItemId())
+                                .quantity(
+                                                stock.getQuantity() != null
+                                                                ? stock.getQuantity()
+                                                                : BigDecimal.ZERO)
+                                .build();
+        }
+
+        // =========================================================
+        // GET ALL STOCK
+        // =========================================================
+        @Override
+        public List<StockResponseDTO> getAllStock(Long businessId) {
+
+                return stockRepository
+                                .findByBusinessId(businessId)
+                                .stream()
+                                .map(stock -> StockResponseDTO.builder()
+                                                .businessId(stock.getBusinessId())
+                                                .itemId(stock.getItemId())
+                                                .quantity(stock.getQuantity())
+                                                .build())
+                                .toList();
+        }
+
+        // =========================================================
+        // GET LOW STOCK ITEMS
+        // =========================================================
+        @Override
+        public List<StockResponseDTO> getLowStockItems(Long businessId) {
+
+                return stockRepository
+                                .findLowStockByBusinessId(businessId)
+                                .stream()
+                                .map(stock -> StockResponseDTO.builder()
+                                                .businessId(stock.getBusinessId())
+                                                .itemId(stock.getItemId())
+                                                .quantity(stock.getQuantity())
+                                                .build())
+                                .toList();
+        }
+
+        // =========================================================
+        // STOCK MOVEMENT HISTORY
+        // =========================================================
+        @Override
+        public List<StockMovementResponseDTO> getStockMovements(Long businessId, Long itemId) {
+
+                return movementRepository
+                                .findByBusinessIdAndItemIdOrderByCreatedAtDesc(businessId, itemId)
+                                .stream()
+                                .map(m -> StockMovementResponseDTO.builder()
+                                                .id(m.getId())
+                                                .businessId(m.getBusinessId())
+                                                .itemId(m.getItemId())
+                                                .quantity(m.getQuantity())
+                                                .movementType(m.getMovementType())
+                                                .referenceType(m.getReferenceType())
+                                                .referenceId(m.getReferenceId())
+                                                .remarks(m.getRemarks())
+                                                .createdAt(m.getCreatedAt())
+                                                .build())
+                                .toList();
+        }
 }

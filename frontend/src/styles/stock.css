@@ -262,6 +262,17 @@
   box-shadow: 0 2px 8px rgba(133, 100, 4, 0.15);
 }
 
+.status-out-of-stock {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.status-out-of-stock:hover {
+  background: #f5c6cb;
+  box-shadow: 0 2px 8px rgba(114, 28, 36, 0.15);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .stock-page-header {

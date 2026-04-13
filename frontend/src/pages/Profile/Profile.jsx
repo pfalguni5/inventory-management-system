@@ -8,11 +8,11 @@ function Profile() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.d@ex.com",
-    phone: "9876543210",
-    role: "Owner",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "",
   });
 
   const [passwords, setPasswords] = useState({

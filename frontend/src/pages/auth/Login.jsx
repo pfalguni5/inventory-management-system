@@ -103,14 +103,14 @@ function Login() {
     } catch (error) {
       console.error("Login error:", error);
 
-      //dont always say invalid credentials
-      if(!localStorage.getItem("token")){
-        setErrors({ submit: "Invalid credentials" });
+      // Check if error has response from backend
+      if (error.response?.data?.message) {
+        setErrors({ submit: error.response.data.message });
+      } else if (error.message) {
+        setErrors({ submit: error.message });
       } else {
-        //login succeeded but business missing
-        navigate("/business-setup");
+        setErrors({ submit: "Login failed. Please try again." });
       }
-      
     } finally {
       setIsLoading(false);
     }

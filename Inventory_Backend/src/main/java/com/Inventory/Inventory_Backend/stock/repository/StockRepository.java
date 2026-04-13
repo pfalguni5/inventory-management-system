@@ -25,12 +25,18 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     // GET LOW STOCK ITEMS
     // =========================================================
     @Query("""
-        SELECT s
-        FROM Stock s
-        JOIN Item i ON s.itemId = i.id
-        WHERE s.businessId = :businessId
-        AND i.lowStockAlert > 0
-        AND s.quantity <= i.lowStockAlert
-    """)
-    List<Stock> findLowStockItems(Long businessId);
+                SELECT s
+                FROM Stock s
+                WHERE s.businessId = :businessId
+                AND s.itemId IN (
+                    SELECT i.id FROM Item i
+                    WHERE i.lowStockAlert > 0
+                    AND i.businessId = :businessId
+                )
+                AND s.quantity <= (
+                    SELECT i.lowStockAlert FROM Item i
+                    WHERE i.id = s.itemId
+                )
+            """)
+    List<Stock> findLowStockByBusinessId(Long businessId);
 }

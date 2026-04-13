@@ -68,7 +68,7 @@ function StockOverview() {
     const currentStock = stockItem.quantity || 0;
 
     if (currentStock <= 0) {
-      return { status: "Out of Stock", className: "status-low" };
+      return { status: "Out of Stock", className: "status-out-of-stock" };
     } else if (currentStock <= minLevel) {
       return { status: "Low Stock", className: "status-low" };
     } else {
@@ -244,8 +244,8 @@ function StockOverview() {
           <table className="data-table stock-table">
             <thead>
               <tr>
-                <th>Item Name</th>
-                <th>Unit</th>
+                <th className="center">Item Name</th>
+                <th className="center">Unit</th>
                 <th className="center">Current Stock</th>
                 <th className="center">Min Level</th>
                 <th className="center">Status</th>
