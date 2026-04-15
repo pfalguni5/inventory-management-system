@@ -41,8 +41,36 @@ function Navbar({ toggleSidebar }) {
   };
 
   const handleLogoutClick = () => {
-    navigate("/");
+    // Clear authentication data
+    localStorage.removeItem("token");
+    localStorage.removeItem("businessId");
+    
+    // Clear user-specific data
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userName");
+    
+    // Clear user preferences
+    localStorage.removeItem("itemCategories");
+    localStorage.removeItem("itemsLayout");
+    localStorage.removeItem("itemsSortBy");
+    localStorage.removeItem("itemsSortDir");
+    
+    // Clear user state
+    setUser({
+      firstName: "",
+      lastName: "",
+      email: "",
+      role: "",
+    });
+    
+    // Clear notifications
+    setNotifications([]);
+    
+    // Close profile menu
     setShowProfile(false);
+    
+    // Navigate to login page
+    navigate("/");
   };
 
   useEffect(() => {
