@@ -375,19 +375,20 @@
 }
 
 .notification-menu {
-  width: 300px;
+  width: 350px;
 }
 
 .notification-items {
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
 .notification-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 16px;
+  border-bottom: 1px solid #e8eaed;
   display: flex;
   gap: 12px;
+  align-items: flex-start;
   transition: background 0.2s ease;
 }
 
@@ -396,20 +397,134 @@
 }
 
 .notification-item:hover {
-  background: #f8f9fa;
+  background: #f5f6f7;
 }
 
 .notification-icon {
-  font-size: 16px;
-  min-width: 20px;
+  font-size: 18px;
+  min-width: 24px;
   flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .notification-item p {
   margin: 0;
-  font-size: 13px;
-  color: #333;
-  line-height: 1.4;
+  padding: 0;
+}
+
+.notification-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #1a3a52 !important;
+}
+
+.notification-message {
+  font-size: 13px !important;
+  color: #555 !important;
+  line-height: 1.5 !important;
+  word-wrap: break-word;
+}
+
+.notification-time {
+  font-size: 12px !important;
+  color: #999 !important;
+  margin-top: 2px;
+  display: block;
+}
+
+.notification-item.empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.notification-item.empty p {
+  margin: 0;
+}
+
+.notification-dismiss-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.notification-dismiss-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+.notification-dismiss-btn:active {
+  transform: scale(0.95);
+}
+
+/* Notification Type Styles */
+.notification-low_stock .notification-icon {
+  color: #ff9800;
+}
+
+.notification-eway_bill_expiring .notification-icon {
+  color: #ff9800;
+}
+
+.notification-eway_bill_cancelled .notification-icon {
+  color: #f44336;
+}
+
+.notification-pending_payment .notification-icon {
+  color: #ff9800;
+}
+
+.notification-overdue_invoice .notification-icon {
+  color: #f44336;
+}
+
+/* Payment Reminder Styles */
+.notification-overdue_sales_payment .notification-icon {
+  color: #f44336;
+}
+
+.notification-due_soon_sales_payment .notification-icon {
+  color: #ff9800;
+}
+
+.notification-overdue_purchase_payment .notification-icon {
+  color: #f44336;
+}
+
+.notification-due_soon_purchase_payment .notification-icon {
+  color: #ff9800;
+}
+
+/* Quotation Alert Styles */
+.notification-draft_quotation .notification-icon {
+  color: #ff9800;
+}
+
+.notification-pending_conversion_quotation .notification-icon {
+  color: #f44336;
+}
+
+.notification-expiring_quotation .notification-icon {
+  color: #ff9800;
 }
 
 .profile-menu {

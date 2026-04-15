@@ -10,6 +10,16 @@ const getNotifications = async () => {
     }
 };
 
-const notificationService = { getNotifications };
+const dismissNotification = async (notificationId) => {
+    try {
+        await api.put(`/notifications/${notificationId}/read`);
+        return true;
+    } catch (error) {
+        console.error("Failed to dismiss notification:", error);
+        return false;
+    }
+};
+
+const notificationService = { getNotifications, dismissNotification };
 
 export default notificationService;

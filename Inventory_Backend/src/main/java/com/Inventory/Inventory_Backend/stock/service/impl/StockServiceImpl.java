@@ -49,10 +49,18 @@ public class StockServiceImpl implements StockService {
                 BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
                                 .orElse(BigDecimal.ZERO);
 
+                BigDecimal oldQty = currentQty;
                 stock.setQuantity(currentQty.add(quantity));
                 stock.setUpdatedAt(LocalDateTime.now());
 
                 stockRepository.save(stock);
+
+                // EVENT-DRIVEN: Trigger notification on stock level change
+                try {
+                        notificationService.onStockLevelChanged(businessId, itemId, oldQty, stock.getQuantity());
+                } catch (Exception e) {
+                        System.err.println("Error in onStockLevelChanged after purchase: " + e.getMessage());
+                }
 
                 movementRepository.save(
                                 StockMovement.builder()
@@ -91,10 +99,18 @@ public class StockServiceImpl implements StockService {
                         throw new RuntimeException("Insufficient stock for item: " + itemId);
                 }
 
+                BigDecimal oldQty = currentQty;
                 stock.setQuantity(currentQty.subtract(quantity));
                 stock.setUpdatedAt(LocalDateTime.now());
 
                 stockRepository.save(stock);
+
+                // EVENT-DRIVEN: Trigger notification on stock level change
+                try {
+                        notificationService.onStockLevelChanged(businessId, itemId, oldQty, stock.getQuantity());
+                } catch (Exception e) {
+                        System.err.println("Error in onStockLevelChanged after sale: " + e.getMessage());
+                }
 
                 movementRepository.save(
                                 StockMovement.builder()
@@ -143,11 +159,20 @@ public class StockServiceImpl implements StockService {
                 }
 
                 BigDecimal adjustment = newQty.subtract(currentQty);
+                BigDecimal oldQty = currentQty;
 
                 stock.setQuantity(newQty);
                 stock.setUpdatedAt(LocalDateTime.now());
 
                 stockRepository.save(stock);
+
+                // EVENT-DRIVEN: Trigger notification on stock level change
+                try {
+                        notificationService.onStockLevelChanged(businessId, request.getItemId(), oldQty,
+                                        stock.getQuantity());
+                } catch (Exception e) {
+                        System.err.println("Error in onStockLevelChanged after adjustment: " + e.getMessage());
+                }
 
                 movementRepository.save(
                                 StockMovement.builder()

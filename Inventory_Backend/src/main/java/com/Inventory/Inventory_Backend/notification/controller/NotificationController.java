@@ -42,4 +42,15 @@ public class NotificationController {
         notificationService.generateStockAlerts(businessId);
         return ResponseEntity.ok("Stock alerts generated");
     }
+
+    // Mark notification as read (dismiss)
+    @PutMapping("/{id}/read")
+    public ResponseEntity<String> markNotificationAsRead(
+            @PathVariable Long id,
+            @RequestHeader("X-Business-Id") Long businessId) {
+
+        authUtil.validateBusinessAccess(businessId);
+        notificationService.markNotificationAsRead(id, businessId);
+        return ResponseEntity.ok("Notification marked as read");
+    }
 }

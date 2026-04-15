@@ -2,6 +2,7 @@ package com.Inventory.Inventory_Backend.sales.service;
 
 import com.Inventory.Inventory_Backend.item.entity.Item;
 import com.Inventory.Inventory_Backend.item.repository.ItemRepository;
+import com.Inventory.Inventory_Backend.notification.service.NotificationService;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
 import com.Inventory.Inventory_Backend.party.entity.PartyType; // ✅ ADDED
 import com.Inventory.Inventory_Backend.sales.common.exception.InsufficientStockException;
@@ -36,12 +37,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final PartyRepository partyRepository;
     private final SalesMapper salesMapper;
     private final StockService stockService;
+    private final NotificationService notificationService;
 
     // ================= CREATE =================
     @Override
     @Transactional
     public SalesInvoiceResponseDTO createSalesInvoice(Long businessId,
-                                                      SalesInvoiceRequestDTO request) {
+            SalesInvoiceRequestDTO request) {
 
         validatePartyExists(businessId, request.getPartyId());
 
@@ -71,14 +73,12 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    saved.getId()
-            );
+                    saved.getId());
         }
 
         SalesInvoiceResponseDTO response = salesMapper.toResponseDTO(saved);
 
-        boolean eWayBillRequired =
-                saved.getGrandTotal().compareTo(new BigDecimal("50000")) > 0;
+        boolean eWayBillRequired = saved.getGrandTotal().compareTo(new BigDecimal("50000")) > 0;
 
         response.setEWayBillRequired(eWayBillRequired);
 
@@ -106,12 +106,41 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     @Override
     @Transactional
     public SalesInvoiceResponseDTO updateSalesInvoice(Long businessId,
-                                                      Long invoiceId,
-                                                      SalesInvoiceRequestDTO request) {
+            Long invoiceId,
+            SalesInvoiceRequestDTO request) {
 
         SalesInvoice invoice = findActiveInvoice(businessId, invoiceId);
 
+        // ===== PAYMENT-ONLY UPDATE =====
+        // If request has no items, this is a payment recording operation - only update
+        // amountPaid and balance
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            // Just update the payment amount and recalculate balance
+            String oldPaymentStatus = invoice.getStatus();
+
+            invoice.setAmountPaid(safe(request.getAmountPaid()));
+            // Recalculate balance keeping grandTotal unchanged
+            BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+            invoice.setBalance(grandTotal.subtract(safe(invoice.getAmountPaid())));
+            updateInvoiceStatus(invoice);
+
+            SalesInvoice saved = invoiceRepository.save(invoice);
+
+            // EVENT-DRIVEN: Trigger notification when payment status changes
+            try {
+                notificationService.onSalesPaymentStatusChanged(businessId, invoiceId, oldPaymentStatus,
+                        saved.getStatus());
+            } catch (Exception e) {
+                System.err.println("Error in onSalesPaymentStatusChanged: " + e.getMessage());
+            }
+
+            return salesMapper.toResponseDTO(saved);
+        }
+
+        // ===== FULL INVOICE UPDATE =====
         validatePartyExists(businessId, request.getPartyId());
+
+        String oldPaymentStatus = invoice.getStatus();
 
         restoreStockForItems(invoice.getItems(), businessId);
         invoice.getItems().clear();
@@ -129,13 +158,19 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         SalesInvoice saved = invoiceRepository.save(invoice);
 
+        // EVENT-DRIVEN: Trigger notification when payment status changes
+        try {
+            notificationService.onSalesPaymentStatusChanged(businessId, invoiceId, oldPaymentStatus, saved.getStatus());
+        } catch (Exception e) {
+            System.err.println("Error in onSalesPaymentStatusChanged: " + e.getMessage());
+        }
+
         for (SalesInvoiceItem item : saved.getItems()) {
             stockService.decreaseStock(
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    saved.getId()
-            );
+                    saved.getId());
         }
 
         return salesMapper.toResponseDTO(saved);
@@ -182,8 +217,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         var party = partyRepository
                 .findByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Customer not found: " + partyId));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + partyId));
 
         if (!party.getBusinessId().equals(businessId) || !party.getIsActive()) {
             throw new ResourceNotFoundException("Customer not found: " + partyId);
@@ -201,14 +235,12 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         return invoiceRepository
                 .findByIdAndBusinessIdAndIsDeletedFalse(invoiceId, businessId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Sales invoice not found: " + invoiceId));
+                .orElseThrow(() -> new ResourceNotFoundException("Sales invoice not found: " + invoiceId));
     }
 
     private String generateInvoiceNumber(Long businessId) {
 
-        Optional<String> latest =
-                invoiceRepository.findLatestInvoiceNumberByBusinessId(businessId);
+        Optional<String> latest = invoiceRepository.findLatestInvoiceNumberByBusinessId(businessId);
 
         long next = latest
                 .map(num -> Long.parseLong(num.replace("INV-", "")) + 1)
@@ -229,22 +261,20 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    null
-            );
+                    null);
         }
     }
 
     private void processItems(SalesInvoice invoice,
-                              List<SalesInvoiceItemDTO> items,
-                              boolean interState,
-                              Long businessId) {
+            List<SalesInvoiceItemDTO> items,
+            boolean interState,
+            Long businessId) {
 
         for (SalesInvoiceItemDTO dto : items) {
 
             Item item = itemRepository
                     .findByIdAndBusinessId(dto.getItemId(), businessId)
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Item not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
 
             StockResponseDTO stock = stockService.getStock(businessId, dto.getItemId());
 
@@ -290,7 +320,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             BigDecimal taxableBase = itemSubtotal.subtract(itemDiscount);
 
             // Tax for this item
-            BigDecimal itemTax = taxableBase.multiply(safe(item.getGstRate())).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            BigDecimal itemTax = taxableBase.multiply(safe(item.getGstRate())).divide(new BigDecimal("100"), 2,
+                    RoundingMode.HALF_UP);
             totalTax = totalTax.add(itemTax);
 
             // ===== SET ITEM-LEVEL TOTALS =====
@@ -322,6 +353,12 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         if (amountPaid.compareTo(grandTotal) >= 0) {
             // Full payment received
             invoice.setStatus("paid");
+            // Resolve payment notifications for this invoice
+            try {
+                notificationService.resolveSalesPaymentNotifications(invoice.getBusinessId(), invoice.getId());
+            } catch (Exception e) {
+                log.warn("Failed to resolve payment notifications for sales invoice: " + invoice.getId(), e);
+            }
         } else if (amountPaid.compareTo(BigDecimal.ZERO) > 0) {
             // Partial payment received
             invoice.setStatus("partial");

@@ -34,6 +34,7 @@ import {
   faBullseye,
   faTriangleExclamation,
   faCircleCheck,
+  faCircleXmark,
   faNoteSticky,
   faFileExport,
   faFileImport,
@@ -128,6 +129,7 @@ export const ICONS = {
   warning: faTriangleExclamation,
   success: faCircleCheck,
   checkCircle: faCircleCheck,
+  error: faCircleXmark,
   
   // Location & Transport
   address: faLocationDot,

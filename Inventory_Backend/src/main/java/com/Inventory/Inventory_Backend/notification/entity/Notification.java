@@ -2,11 +2,15 @@ package com.Inventory.Inventory_Backend.notification.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_notification_duplicate", columnNames = { "businessId", "type", "relatedId",
+                "relatedType" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -44,10 +48,8 @@ public class Notification {
     @Column(nullable = false)
     private Boolean isRead = false;
 
+    @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-
-
+    private LocalDateTime createdAt;
 
 }

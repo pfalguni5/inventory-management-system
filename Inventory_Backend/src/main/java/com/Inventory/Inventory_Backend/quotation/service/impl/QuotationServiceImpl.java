@@ -15,6 +15,7 @@ import com.Inventory.Inventory_Backend.sales.entity.SalesInvoice;
 import com.Inventory.Inventory_Backend.sales.entity.SalesInvoiceItem;
 import com.Inventory.Inventory_Backend.sales.repository.SalesInvoiceRepository;
 import com.Inventory.Inventory_Backend.stock.service.StockService;
+import com.Inventory.Inventory_Backend.notification.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class QuotationServiceImpl implements QuotationService {
     private final ItemRepository itemRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final StockService stockService;
+    private final NotificationService notificationService;
 
     // ============================================================
     // CREATE QUOTATION
@@ -174,25 +176,25 @@ public class QuotationServiceImpl implements QuotationService {
                 .findByIdAndBusinessIdAndIsDeletedFalse(quotationId, businessId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
-        if("CONVERTED".equals(quotation.getStatus())){
+        if ("CONVERTED".equals(quotation.getStatus())) {
             throw new RuntimeException("Quotation already converted");
         }
 
-        if(!"APPROVED".equals(quotation.getStatus())){
+        if (!"APPROVED".equals(quotation.getStatus())) {
             throw new RuntimeException("Only approved quotations can be converted");
         }
 
-        List<QuotationItem> quotationItems =
-                quotationItemRepository.findByQuotationIdAndBusinessId(quotationId, businessId);
+        List<QuotationItem> quotationItems = quotationItemRepository.findByQuotationIdAndBusinessId(quotationId,
+                businessId);
 
-        //security check
-        for(QuotationItem qi : quotationItems){
-            if(!qi.getBusinessId().equals(businessId)){
+        // security check
+        for (QuotationItem qi : quotationItems) {
+            if (!qi.getBusinessId().equals(businessId)) {
                 throw new RuntimeException("Cross-business data access detected");
             }
         }
 
-        //1. create fully populated invoice
+        // 1. create fully populated invoice
         SalesInvoice invoice = SalesInvoice.builder()
                 .businessId(businessId)
                 .partyId(quotation.getPartyId())
@@ -218,11 +220,11 @@ public class QuotationServiceImpl implements QuotationService {
         BigDecimal totalSgst = BigDecimal.ZERO;
         BigDecimal totalIgst = BigDecimal.ZERO;
 
-        for(QuotationItem qi : quotationItems){
+        for (QuotationItem qi : quotationItems) {
             BigDecimal gstRate = qi.getGstRate() != null ? qi.getGstRate() : BigDecimal.ZERO;
             BigDecimal taxAmount = qi.getTaxAmount() != null ? qi.getTaxAmount() : BigDecimal.ZERO;
 
-            //split tax intocgst/sgst(50% each)
+            // split tax intocgst/sgst(50% each)
             BigDecimal cgst = taxAmount.divide(BigDecimal.valueOf(2));
             BigDecimal sgst = taxAmount.divide(BigDecimal.valueOf(2));
             BigDecimal igst = BigDecimal.ZERO;
@@ -251,8 +253,7 @@ public class QuotationServiceImpl implements QuotationService {
                     businessId,
                     qi.getItemId(),
                     qi.getQuantity(),
-                    quotationId
-            );
+                    quotationId);
         }
 
         invoice.setItems(items);
@@ -268,6 +269,13 @@ public class QuotationServiceImpl implements QuotationService {
         quotation.setConvertedAt(LocalDateTime.now());
 
         quotationRepository.save(quotation);
+
+        // Resolve quotation notifications when converted
+        try {
+            notificationService.resolveQuotationNotifications(businessId, quotationId);
+        } catch (Exception e) {
+            log.warn("Failed to resolve quotation notifications: " + quotationId, e);
+        }
 
         return savedInvoice.getId();
     }
@@ -355,9 +363,24 @@ public class QuotationServiceImpl implements QuotationService {
             throw new RuntimeException("Invalid quotation status: " + status);
         }
 
+        String oldStatus = quotation.getStatus();
         quotation.setStatus(normalizedStatus);
 
         Quotation savedQuotation = quotationRepository.save(quotation);
+
+        // EVENT-DRIVEN: Trigger notification when quotation status changes
+        try {
+            notificationService.onQuotationStatusChanged(businessId, quotationId, oldStatus, normalizedStatus);
+        } catch (Exception e) {
+            log.warn("Error in onQuotationStatusChanged: " + quotationId, e);
+        }
+
+        // Resolve quotation notifications when status changes
+        try {
+            notificationService.resolveQuotationNotifications(businessId, quotationId);
+        } catch (Exception e) {
+            log.warn("Failed to resolve quotation notifications: " + quotationId, e);
+        }
 
         return mapToResponseDTO(savedQuotation);
     }
@@ -408,7 +431,8 @@ public class QuotationServiceImpl implements QuotationService {
         dto.setNotes(quotation.getNotes());
         dto.setStatus(quotation.getStatus());
 
-        List<QuotationItemDTO> itemDTOs = quotationItemRepository.findByQuotationIdAndBusinessId(quotation.getId(), quotation.getBusinessId())
+        List<QuotationItemDTO> itemDTOs = quotationItemRepository
+                .findByQuotationIdAndBusinessId(quotation.getId(), quotation.getBusinessId())
                 .stream()
                 .map(item -> {
 

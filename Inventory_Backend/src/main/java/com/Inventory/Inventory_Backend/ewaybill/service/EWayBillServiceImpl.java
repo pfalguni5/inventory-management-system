@@ -4,6 +4,7 @@ import com.Inventory.Inventory_Backend.ewaybill.dto.*;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBill;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillStatus;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillVehicleAudit;
+import com.Inventory.Inventory_Backend.notification.service.NotificationService;
 import com.Inventory.Inventory_Backend.party.entity.Party;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
 import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillRepository;
@@ -11,6 +12,7 @@ import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillVehicleAuditR
 import com.Inventory.Inventory_Backend.sales.entity.SalesInvoice;
 import com.Inventory.Inventory_Backend.sales.repository.SalesInvoiceRepository;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class EWayBillServiceImpl implements EWayBillService {
 
     private final EWayBillRepository repository;
@@ -42,6 +45,9 @@ public class EWayBillServiceImpl implements EWayBillService {
     @Autowired
     private PartyRepository partyRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     public EWayBillResponse createEWayBill(Long businessId, EWayBillCreateRequest request) {
 
@@ -51,7 +57,7 @@ public class EWayBillServiceImpl implements EWayBillService {
                         businessId)
                 .orElseThrow(() -> new RuntimeException("Sales Invoice not found"));
 
-        if(!invoice.getBusinessId().equals(businessId)){
+        if (!invoice.getBusinessId().equals(businessId)) {
             throw new RuntimeException("Cross-business invoice access detected");
         }
 
@@ -61,10 +67,9 @@ public class EWayBillServiceImpl implements EWayBillService {
                         businessId)
                 .orElseThrow(() -> new RuntimeException("Buyer not found"));
 
-        Optional<EWayBill> existing =
-                repository.findBySalesInvoiceIdAndBusinessId(
-                        request.getSalesInvoiceId(),
-                        businessId);
+        Optional<EWayBill> existing = repository.findBySalesInvoiceIdAndBusinessId(
+                request.getSalesInvoiceId(),
+                businessId);
 
         if (existing.isPresent()) {
             throw new RuntimeException("EWay Bill already exists for this invoice");
@@ -119,9 +124,16 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setBuyerBusinessName(buyer.getName());
         entity.setBuyerState(buyer.getState());
 
-        repository.save(entity);
+        EWayBill savedEntity = repository.save(entity);
 
-        return mapToResponse(entity);
+        // Trigger event-driven notification handlers for new EWayBill
+        try {
+            notificationService.onEWayBillStatusChanged(businessId, savedEntity.getId(), "NEW", "ACTIVE");
+        } catch (Exception e) {
+            log.warn("Error handling ewaybill status change event for new ewaybill {}", savedEntity.getId(), e);
+        }
+
+        return mapToResponse(savedEntity);
     }
 
     @Override
@@ -249,10 +261,20 @@ public class EWayBillServiceImpl implements EWayBillService {
                 .findByIdAndBusinessIdAndIsActiveTrue(id, businessId)
                 .orElseThrow(() -> new RuntimeException("EWayBill not found"));
 
+        // Capture old status for event handler
+        String oldStatus = entity.getStatus() != null ? entity.getStatus().toString() : "UNKNOWN";
+
         entity.setStatus(EWayBillStatus.CANCELLED);
         entity.setUpdatedAt(LocalDateTime.now());
 
         repository.save(entity);
+
+        // Trigger event-driven notification handlers
+        try {
+            notificationService.onEWayBillStatusChanged(businessId, id, oldStatus, "CANCELLED");
+        } catch (Exception e) {
+            log.warn("Error handling ewaybill status change event for ewaybill {}", id, e);
+        }
     }
 
     @Override
@@ -307,8 +329,8 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         // Buyer Details
         response.setBuyerName(entity.getBuyerBusinessName());
-        response.setBuyerGstin(entity.getBuyerGstin());   // Added
-        response.setBuyerState(entity.getBuyerState());   // Added
+        response.setBuyerGstin(entity.getBuyerGstin()); // Added
+        response.setBuyerState(entity.getBuyerState()); // Added
 
         // Transporter Details
         response.setTransporterId(entity.getTransporterId()); // Added

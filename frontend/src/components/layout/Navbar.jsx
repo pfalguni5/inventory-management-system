@@ -23,6 +23,13 @@ function Navbar({ toggleSidebar }) {
   const notificationDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
 
+  const handleDismissNotification = async (notificationId) => {
+    const success = await notificationService.dismissNotification(notificationId);
+    if (success) {
+      setNotifications(notifications.filter(n => n.id !== notificationId));
+    }
+  };
+
   const handleProfileHeaderClick = () => {
     navigate("/app/profile");
     setShowProfile(false);
@@ -198,9 +205,16 @@ function Navbar({ toggleSidebar }) {
                         <p className="notification-title">{notif.title}</p>
                         <p className="notification-message">{notif.message}</p>
                         <small className="notification-time">
-                          {new Date(notif.createdAt).toLocaleTimeString()}
+                          {notif.createdAt ? new Date(notif.createdAt).toLocaleString(): "Just now"}
                         </small>
                       </div>
+                      <button
+                        className="notification-dismiss-btn"
+                        onClick={() => handleDismissNotification(notif.id)}
+                        title="Dismiss"
+                      >
+                        <AppIcon name="close" size="sm" />
+                      </button>
                     </div>
                   ))
                 ) : (

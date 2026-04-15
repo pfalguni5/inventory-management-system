@@ -14,6 +14,7 @@ import com.Inventory.Inventory_Backend.purchase.mapper.PurchaseInvoiceMapper;
 import com.Inventory.Inventory_Backend.purchase.repository.PurchaseInvoiceRepository;
 import com.Inventory.Inventory_Backend.purchase.service.PurchaseInvoiceService;
 import com.Inventory.Inventory_Backend.stock.service.StockService;
+import com.Inventory.Inventory_Backend.notification.service.NotificationService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     private final ItemRepository itemRepository;
     private final PurchaseInvoiceMapper mapper;
     private final StockService stockService;
+    private final NotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -102,9 +104,37 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
                 .findByIdWithItemsAndParty(id, businessId)
                 .orElseThrow(() -> new PurchaseInvoiceNotFoundException(id, businessId));
 
+        // ===== PAYMENT-ONLY UPDATE =====
+        // If request has no items, this is a payment recording operation - only update
+        // amountPaid and balance
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            // Just update the payment amount and recalculate balance
+            String oldPaymentStatus = invoice.getStatus();
+
+            invoice.setAmountPaid(request.getAmountPaid() == null ? BigDecimal.ZERO : request.getAmountPaid());
+            // Recalculate balance keeping grandTotal unchanged
+            BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+            invoice.setBalance(grandTotal.subtract(invoice.getAmountPaid()));
+            updateInvoiceStatus(invoice);
+
+            PurchaseInvoice saved = invoiceRepository.save(invoice);
+
+            // EVENT-DRIVEN: Trigger notification when payment status changes
+            try {
+                notificationService.onPurchasePaymentStatusChanged(businessId, id, oldPaymentStatus, saved.getStatus());
+            } catch (Exception e) {
+                System.err.println("Error in onPurchasePaymentStatusChanged: " + e.getMessage());
+            }
+
+            return mapper.toResponseDTO(saved);
+        }
+
+        // ===== FULL INVOICE UPDATE =====
         validatePartyBelongsToBusiness(request.getPartyId(), businessId);
         validateBillNumberIsUniqueForUpdate(businessId, request.getBillNumber(), id);
         validateAllItemsBelongToBusiness(request.getItems(), businessId);
+
+        String oldPaymentStatus = invoice.getStatus();
 
         // step 1: restore old stock first
         for (PurchaseInvoiceItem item : invoice.getItems()) {
@@ -127,6 +157,13 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         updateInvoiceStatus(invoice);
 
         PurchaseInvoice saved = invoiceRepository.save(invoice);
+
+        // EVENT-DRIVEN: Trigger notification when payment status changes
+        try {
+            notificationService.onPurchasePaymentStatusChanged(businessId, id, oldPaymentStatus, saved.getStatus());
+        } catch (Exception e) {
+            System.err.println("Error in onPurchasePaymentStatusChanged: " + e.getMessage());
+        }
 
         // step 2: apply new stock
         for (PurchaseInvoiceItem item : saved.getItems()) {
@@ -294,6 +331,12 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         if (amountPaid.compareTo(grandTotal) >= 0) {
             // Full payment received
             invoice.setStatus("paid");
+            // Resolve payment notifications for this invoice
+            try {
+                notificationService.resolvePurchasePaymentNotifications(invoice.getBusinessId(), invoice.getId());
+            } catch (Exception e) {
+                log.warn("Failed to resolve payment notifications for purchase invoice: " + invoice.getId(), e);
+            }
         } else if (amountPaid.compareTo(BigDecimal.ZERO) > 0) {
             // Partial payment received
             invoice.setStatus("partial");
