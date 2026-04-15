@@ -91,7 +91,30 @@ function Settings() {
   };
 
   const handleLogout = () => {
+    // Show confirmation dialog
+    const isConfirmed = window.confirm(
+      "Are you sure you want to sign out?\n\nYou'll need to login again to access your business."
+    );
+
+    if (!isConfirmed) {
+      return; // User cancelled logout
+    }
+
+    // Clear authentication data
     localStorage.removeItem("token");
+    localStorage.removeItem("businessId");
+    
+    // Clear user-specific data
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userName");
+    
+    // Clear user preferences
+    localStorage.removeItem("itemCategories");
+    localStorage.removeItem("itemsLayout");
+    localStorage.removeItem("itemsSortBy");
+    localStorage.removeItem("itemsSortDir");
+    
+    // Navigate to login page
     navigate("/login");
   };
 
