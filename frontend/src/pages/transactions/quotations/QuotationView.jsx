@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppIcon from "../../../components/common/AppIcon";
 import "../../../styles/quotation-view.css";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { useRef } from "react";
+
 import { 
   getQuotationById, 
   convertQuotationToInvoice, 
@@ -13,6 +17,7 @@ const QuotationView = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const quotationDocRef = useRef(null);
 
   const [quotation, setQuotation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,8 +115,62 @@ const QuotationView = () => {
     );
   }
 
-  const handleDownloadPDF = () => {
-    alert("PDF download initiated for Quotation " + quotation.number);
+  const handleDownloadPDF = async () => {
+    try {
+      const element = quotationDocRef.current;
+      
+      if (!element) {
+        alert("Unable to generate PDF. Please try again.");
+        return;
+      }
+
+      // Capture the element as a canvas image
+      const canvas = await html2canvas(element, {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Get image from canvas
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Calculate dimensions
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 5; // 5mm margins
+
+      // Calculate image dimensions to fit A4 with margins
+      const availWidth = pageWidth - (margin * 2);
+      const availHeight = pageHeight - (margin * 2);
+
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(availWidth / imgWidth, availHeight / imgHeight);
+
+      const finalWidth = imgWidth * ratio;
+      const finalHeight = imgHeight * ratio;
+      const xPos = margin + (availWidth - finalWidth) / 2;
+      const yPos = margin;
+
+      // Add image to PDF
+      pdf.addImage(imgData, 'JPEG', xPos, yPos, finalWidth, finalHeight);
+
+      // Download
+      pdf.save(`Quotation_${quotation.number}.pdf`);
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const handlePrint = () => {
@@ -175,7 +234,7 @@ const QuotationView = () => {
       </div>
 
       {/* A4 QUOTATION DOCUMENT */}
-      <div className="quotation-document">
+      <div className="quotation-document" ref={quotationDocRef}>
         {/* SECTION 1: Header */}
         <div style={{
           display: "grid",
