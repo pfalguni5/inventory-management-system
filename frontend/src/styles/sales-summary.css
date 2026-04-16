@@ -903,3 +903,280 @@
     background-color: transparent;
   }
 }
+
+/* ========== NEW SIMPLIFIED REPORT FORMAT ========== */
+
+/* QUICK SELECT BUTTONS */
+.quick-select-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.quick-btn:hover {
+  background: #f0f4ff;
+  border-color: #667eea;
+  color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.quick-btn:active {
+  transform: translateY(0);
+}
+
+.required {
+  color: #e74c3c;
+}
+
+.filter-label .required {
+  margin-left: 2px;
+}
+
+/* REPORT WRAPPER */
+.report-wrapper {
+  background: white;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  padding: 40px;
+  margin-top: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  page-break-inside: avoid;
+}
+
+/* REPORT HEADER SECTION */
+.report-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #d0d0d0;
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+  gap: 40px;
+}
+
+.report-left {
+  flex: 1;
+}
+
+.business-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 6px;
+}
+
+.business-detail {
+  font-size: 12px;
+  color: #666;
+  margin: 3px 0;
+  line-height: 1.4;
+}
+
+.report-right {
+  text-align: right;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.report-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* REPORT TABLE WRAPPER */
+.report-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 24px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+}
+
+/* SALES REPORT TABLE */
+.sales-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sales-report-table thead {
+  background-color: #f5f7fa;
+  border-bottom: 2px solid #d0d0d0;
+}
+
+.sales-report-table th {
+  padding: 12px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #1a202c;
+  border: 1px solid #e0e0e0;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.sales-report-table td {
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  font-size: 12px;
+}
+
+.sales-report-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.sales-report-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.sales-report-table tbody tr:hover {
+  background-color: #f0f4ff;
+}
+
+.sales-report-table td.amount {
+  text-align: right;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  color: #1a202c;
+}
+
+/* REPORT SUMMARY */
+.report-summary {
+  background: #f8f9fa;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: flex-end;
+}
+
+.summary-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 14px;
+  color: #1a202c;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.summary-item.grand-total .summary-label,
+.summary-item.grand-total .summary-value {
+  font-size: 14px;
+  color: #1a202c;
+  background: rgba(102, 126, 234, 0.08);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* BUTTON DISABLED STATE */
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-primary:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* RESPONSIVE FOR NEW REPORT */
+@media (max-width: 768px) {
+  .report-wrapper {
+    padding: 20px;
+  }
+
+  .report-header-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .report-right {
+    justify-content: flex-start;
+  }
+
+  .report-title {
+    font-size: 22px;
+  }
+
+  .business-name {
+    font-size: 16px;
+  }
+
+  .sales-report-table {
+    font-size: 11px;
+  }
+
+  .sales-report-table th,
+  .sales-report-table td {
+    padding: 8px 6px;
+  }
+
+  .report-summary {
+    flex-direction: column;
+    gap: 12px;
+    justify-content: flex-start;
+  }
+
+  .summary-item {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .quick-select-buttons {
+    flex-direction: column;
+  }
+
+  .quick-btn {
+    width: 100%;
+  }
+
+  .filter-row {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-actions {
+    width: 100%;
+  }
+
+  .filter-actions button {
+    flex: 1;
+  }
+}

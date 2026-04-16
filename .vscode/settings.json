@@ -12,5 +12,15 @@
   "[java]": {
     "editor.defaultFormatter": "redhat.java",
     "editor.formatOnSave": true
+  },
+  "json.validate.enable": false,
+  "json.schemas": [],
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "files.watcherExclude": {
+    "**/node_modules/**": true
+  },
+  "files.exclude": {
+    "node_modules": true,
+    "**/.git": true
   }
 }
