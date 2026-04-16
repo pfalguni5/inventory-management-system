@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppIcon from "../../components/common/AppIcon";
 import "../../styles/item-detail.css";
 import { getPurchaseInvoiceById, deletePurchaseInvoice } from "../../services/purchaseService";
 import { getAllParties } from "../../services/partyService";
 import { getAllItems } from "../../services/itemService";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 function PurchaseDetail() {
   const { id } = useParams();
@@ -14,6 +16,7 @@ function PurchaseDetail() {
   const [deleteHovered, setDeleteHovered] = useState(false);
   const [shareHovered, setShareHovered] = useState(false);
   const [exportHovered, setExportHovered] = useState(false);
+  const invoiceRef = useRef(null);
   const [supplier, setSupplier] = useState(null);
 
   useEffect(() => {
@@ -144,8 +147,48 @@ function PurchaseDetail() {
     }
   };
 
-  const handleExportPDF = () => {
-    window.print();
+  const handleExportPDF = async () => {
+    if (!invoiceRef.current) return;
+
+    try {
+      const element = invoiceRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 5;
+      const availWidth = pdfWidth - 2 * margin;
+      const availHeight = pdfHeight - 2 * margin;
+
+      const ratio = Math.min(availWidth / imgWidth, availHeight / imgHeight);
+      const finalWidth = imgWidth * ratio;
+      const finalHeight = imgHeight * ratio;
+
+      const xPos = (pdfWidth - finalWidth) / 2;
+      const yPos = (pdfHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'JPEG', xPos, yPos, finalWidth, finalHeight);
+      pdf.save(`Purchase_Invoice_${purchase.invoiceNumber}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to export PDF');
+    }
   };
 
   if (isLoading) {
@@ -252,19 +295,21 @@ function PurchaseDetail() {
         </div>
 
       {/* INVOICE */}
-      <div style={{
-        backgroundColor: "white",
-        border: "2px solid #1a3a52",
-        borderRadius: "0px",
-        width: "210mm",
-        height: "297mm",
-        margin: "0 auto",
-        padding: "0",
-        fontFamily: "Arial, sans-serif",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column"
-      }}>
+      <div
+        ref={invoiceRef}
+        style={{
+          backgroundColor: "white",
+          border: "2px solid #1a3a52",
+          borderRadius: "0px",
+          width: "210mm",
+          height: "297mm",
+          margin: "0 auto",
+          padding: "0",
+          fontFamily: "Arial, sans-serif",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column"
+        }}>
 
         {/* SECTION 1: HEADER WITH COMPANY INFO AND TITLE */}
         <div style={{
