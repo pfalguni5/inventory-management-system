@@ -951,7 +951,7 @@
   background: white;
   border: 1px solid #d0d0d0;
   border-radius: 8px;
-  padding: 40px;
+  padding: 50px;
   margin-top: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   page-break-inside: avoid;
@@ -962,9 +962,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px solid #d0d0d0;
-  padding-bottom: 24px;
-  margin-bottom: 32px;
+  border-bottom: 3px solid #d0d0d0;
+  padding-bottom: 32px;
+  margin-bottom: 40px;
   gap: 40px;
 }
 
@@ -973,33 +973,35 @@
 }
 
 .business-name {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: #1a202c;
-  margin: 0 0 6px;
+  margin: 0 0 12px;
 }
 
 .business-detail {
-  font-size: 12px;
+  font-size: 15px;
   color: #666;
-  margin: 3px 0;
-  line-height: 1.4;
+  margin: 6px 0;
+  line-height: 1.6;
 }
 
 .report-right {
-  text-align: right;
+  text-align: center;
   flex: 1;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
 }
 
 .report-title {
-  font-size: 28px;
+  font-size: 52px;
   font-weight: 700;
   color: #1a202c;
   margin: 0;
   letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 /* REPORT TABLE WRAPPER */
@@ -1014,7 +1016,7 @@
 .sales-report-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .sales-report-table thead {
@@ -1023,20 +1025,20 @@
 }
 
 .sales-report-table th {
-  padding: 12px 10px;
-  text-align: left;
-  font-weight: 600;
+  padding: 16px 12px;
+  text-align: center;
+  font-weight: 700;
   color: #1a202c;
   border: 1px solid #e0e0e0;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.3px;
 }
 
 .sales-report-table td {
-  padding: 10px;
+  padding: 14px 12px;
   border: 1px solid #e0e0e0;
   color: #333;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .sales-report-table tbody tr {
@@ -1053,37 +1055,38 @@
 
 .sales-report-table td.amount {
   text-align: right;
-  font-weight: 500;
+  font-weight: 600;
   font-family: 'Courier New', monospace;
   color: #1a202c;
+  font-size: 14px;
 }
 
 /* REPORT SUMMARY */
 .report-summary {
   background: #f8f9fa;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  padding: 20px;
+  border: 2px solid #d0d0d0;
+  border-radius: 8px;
+  padding: 32px;
   display: flex;
   flex-wrap: wrap;
-  gap: 40px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
 .summary-item {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
 .summary-label {
-  font-size: 12px;
+  font-size: 16px;
   color: #666;
   font-weight: 600;
 }
 
 .summary-value {
-  font-size: 14px;
+  font-size: 20px;
   color: #1a202c;
   font-weight: 700;
   font-family: 'Courier New', monospace;
@@ -1091,11 +1094,11 @@
 
 .summary-item.grand-total .summary-label,
 .summary-item.grand-total .summary-value {
-  font-size: 14px;
+  font-size: 18px;
   color: #1a202c;
-  background: rgba(102, 126, 234, 0.08);
-  padding: 8px 12px;
-  border-radius: 4px;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 12px 18px;
+  border-radius: 6px;
   font-weight: 700;
 }
 

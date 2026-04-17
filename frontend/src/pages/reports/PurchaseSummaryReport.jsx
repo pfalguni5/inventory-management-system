@@ -1,153 +1,159 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import AppIcon from "../../components/common/AppIcon";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import api from "../../services/api";
 import "../../styles/purchase-summary.css";
 
 function PurchaseSummaryReport() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [activeTab, setActiveTab] = useState("table");
   const [showReport, setShowReport] = useState(false);
-  const [reportActiveTab, setReportActiveTab] = useState("details");
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const reportRef = useRef(null);
 
-  // Assume GST is enabled (can come from business setup later)
-  const isGSTEnabled = true;
-
-  // Enhanced sample data with taxable value, GSTIN, status, and items detail
-  const purchaseData = [
-    {
-      id: 1,
-      date: "18-08-2024",
-      invoiceNo: "PI-101",
-      supplier: "Rice Suppliers",
-      supplierGSTIN: "27ABCDE1234F1Z0",
-      taxableValue: 9600,
-      gst: 1728,
-      totalAmount: 11328,
-      status: "Paid",
-      items: 3,
-      itemDetails: [
-        { name: "Rice Grade A", qty: 100, unit: "Kg", taxableValue: 5000, gst: 900 },
-        { name: "Rice Grade B", qty: 50, unit: "Kg", taxableValue: 3000, gst: 540 },
-        { name: "Basmati Rice", qty: 30, unit: "Kg", taxableValue: 1600, gst: 288 },
-      ],
-    },
-    {
-      id: 2,
-      date: "19-08-2024",
-      invoiceNo: "PI-102",
-      supplier: "Sugar Traders",
-      supplierGSTIN: "18AAXYZ7890B1Z0",
-      taxableValue: 7600,
-      gst: 1368,
-      totalAmount: 8968,
-      status: "Paid",
-      items: 2,
-      itemDetails: [
-        { name: "Sugar White", qty: 80, unit: "Kg", taxableValue: 4000, gst: 720 },
-        { name: "Sugar Brown", qty: 40, unit: "Kg", taxableValue: 3600, gst: 648 },
-      ],
-    },
-    {
-      id: 3,
-      date: "20-08-2024",
-      invoiceNo: "PI-103",
-      supplier: "Oil Mills",
-      supplierGSTIN: "06AAPD5678C1Z0",
-      taxableValue: 22400,
-      gst: 4032,
-      totalAmount: 26432,
-      status: "Unpaid",
-      items: 6,
-      itemDetails: [
-        { name: "Coconut Oil", qty: 100, unit: "Ltr", taxableValue: 10000, gst: 1800 },
-        { name: "Mustard Oil", qty: 80, unit: "Ltr", taxableValue: 8000, gst: 1440 },
-        { name: "Sunflower Oil", qty: 50, unit: "Ltr", taxableValue: 4400, gst: 792 },
-      ],
-    },
-    {
-      id: 4,
-      date: "21-08-2024",
-      invoiceNo: "PI-104",
-      supplier: "Rice Suppliers",
-      supplierGSTIN: "27ABCDE1234F1Z0",
-      taxableValue: 12400,
-      gst: 2232,
-      totalAmount: 14632,
-      status: "Paid",
-      items: 4,
-      itemDetails: [
-        { name: "Rice Grade A", qty: 150, unit: "Kg", taxableValue: 7500, gst: 1350 },
-        { name: "Basmati Rice", qty: 60, unit: "Kg", taxableValue: 3200, gst: 576 },
-        { name: "Arborio Rice", qty: 40, unit: "Kg", taxableValue: 1700, gst: 306 },
-      ],
-    },
-    {
-      id: 5,
-      date: "22-08-2024",
-      invoiceNo: "PI-105",
-      supplier: "Spice Trading Co",
-      supplierGSTIN: "29AAPCS9876D1Z0",
-      taxableValue: 17600,
-      gst: 3168,
-      totalAmount: 20768,
-      status: "Paid",
-      items: 5,
-      itemDetails: [
-        { name: "Turmeric Powder", qty: 50, unit: "Kg", taxableValue: 5000, gst: 900 },
-        { name: "Chili Powder", qty: 40, unit: "Kg", taxableValue: 4000, gst: 720 },
-        { name: "Coriander Powder", qty: 30, unit: "Kg", taxableValue: 3600, gst: 648 },
-        { name: "Mixed Spices", qty: 20, unit: "Kg", taxableValue: 5000, gst: 900 },
-      ],
-    },
-  ];
-
-  // Calculate totals
-  const totalTaxableValue = purchaseData.reduce((sum, item) => sum + item.taxableValue, 0);
-  const totalGST = purchaseData.reduce((sum, item) => sum + item.gst, 0);
-  const totalAmount = purchaseData.reduce((sum, item) => sum + item.totalAmount, 0);
-  const totalInvoices = purchaseData.length;
-
-  // Calculate item-wise summary
-  const getItemWiseSummary = () => {
-    const itemMap = {};
-    purchaseData.forEach((invoice) => {
-      invoice.itemDetails.forEach((item) => {
-        if (!itemMap[item.name]) {
-          itemMap[item.name] = {
-            name: item.name,
-            totalQty: 0,
-            totalTaxableValue: 0,
-            totalGST: 0,
-            unit: item.unit,
-          };
-        }
-        itemMap[item.name].totalQty += item.qty;
-        itemMap[item.name].totalTaxableValue += item.taxableValue;
-        itemMap[item.name].totalGST += item.gst;
-      });
-    });
-    return Object.values(itemMap);
-  };
-
-  const itemWiseSummary = getItemWiseSummary();
-
-  // Get business details (assume from business setup)
+  // Business details
   const businessDetails = {
     name: "Your Business Name",
+    addressLine1: "123 Business Street",
+    city: "City",
+    state: "State",
+    country: "Country",
     gstin: "27AABCL7890A1Z0",
-    address: "123 Business Street, City",
   };
 
+  // Get date range
+  const getDateRange = (range) => {
+    const today = new Date();
+    let start, end;
+
+    switch (range) {
+      case "day":
+        start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        break;
+      case "week":
+        const weekStart = today.getDate() - today.getDay();
+        start = new Date(today.getFullYear(), today.getMonth(), weekStart);
+        end = new Date(today.getFullYear(), today.getMonth(), weekStart + 7);
+        break;
+      case "month":
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        break;
+      case "year":
+        start = new Date(today.getFullYear(), 0, 1);
+        end = new Date(today.getFullYear() + 1, 0, 1);
+        break;
+      default:
+        return null;
+    }
+    return { start, end };
+  };
+
+  // Quick select buttons
+  const handleQuickSelect = (range) => {
+    const dateRange = getDateRange(range);
+    if (dateRange) {
+      setFromDate(dateRange.start.toISOString().split("T")[0]);
+      setToDate(dateRange.end.toISOString().split("T")[0]);
+    }
+  };
+
+  // Fetch report data from API
+  const fetchPurchaseReport = async () => {
+    if (fromDate === "" || toDate === "") {
+      setError("Please select both From Date and To Date");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await api.post("/reports/purchase-summary", {
+        fromDate: fromDate,
+        toDate: toDate,
+      });
+
+      setReportData(response.data);
+      setShowReport(true);
+    } catch (err) {
+      console.error("Error fetching purchase report:", err);
+      setError(err.response?.data?.message || "Failed to fetch purchase report");
+      setShowReport(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate report on button click
+  const handleGenerateReport = () => {
+    fetchPurchaseReport();
+  };
+
+  // Export to PDF
+  const handleExportPDF = async () => {
+    if (!reportData || reportData.rows.length === 0) {
+      alert("No data available for export");
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.98);
+      const imgWidth = 210 - 10; // A4 width with 5mm margins
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageHeight = 297 - 10; // A4 height with 5mm margins
+      let heightLeft = imgHeight;
+      let position = 5;
+
+      pdf.addImage(imgData, "JPEG", 5, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight + 5;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 5, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Purchase_Summary_Report_${fromDate}_to_${toDate}.pdf`);
+    } catch (error) {
+      console.error("PDF export error:", error);
+      alert("Error generating PDF");
+    }
+  };
+
+  // Export to Excel (placeholder for now)
   const handleExportExcel = () => {
-    alert("Excel export functionality will be implemented");
+    if (!reportData || reportData.rows.length === 0) {
+      alert("No data available for export");
+      return;
+    }
+    alert("Excel export will be implemented next");
   };
 
-  const handleExportPDF = () => {
-    alert("PDF export functionality will be implemented");
-  };
-
-  const handleShareToCA = () => {
-    alert("Share to CA functionality will be implemented");
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
   };
 
   return (
@@ -156,376 +162,183 @@ function PurchaseSummaryReport() {
       <div className="purchase-summary-header">
         <div>
           <h1 className="purchase-summary-title">Purchase Summary Report</h1>
-          <p className="purchase-summary-subtitle">View and analyze your purchase data</p>
+          <p className="purchase-summary-subtitle">Generate and analyze your purchase data for a specific period</p>
         </div>
         <div className="purchase-summary-badge"><AppIcon name="chart" /> Report</div>
-      </div>
-
-      {/* SUMMARY CARDS */}
-      <div className="purchase-summary-grid">
-        <div className="summary-card">
-          <div className="summary-icon"><AppIcon name="money" /></div>
-          <div className="summary-content">
-            <p className="summary-label">Total Amount</p>
-            <p className="summary-value">₹{totalAmount.toLocaleString()}</p>
-          </div>
-        </div>
-
-        <div className="summary-card">
-          <div className="summary-icon"><AppIcon name="chart" /></div>
-          <div className="summary-content">
-            <p className="summary-label">Total GST</p>
-            <p className="summary-value">₹{totalGST.toLocaleString()}</p>
-          </div>
-        </div>
-
-        <div className="summary-card">
-          <div className="summary-icon"><AppIcon name="receipt" /></div>
-          <div className="summary-content">
-            <p className="summary-label">Total Invoices</p>
-            <p className="summary-value">{totalInvoices}</p>
-          </div>
-        </div>
       </div>
 
       {/* FILTER SECTION */}
       <div className="purchase-filter-card">
         <div className="filter-header">
-          <h2 className="filter-title"><AppIcon name="search" /> Filter Data</h2>
+          <h2 className="filter-title"><AppIcon name="search" /> Select Period</h2>
         </div>
 
+        {/* Quick Select Buttons */}
+        <div className="quick-select-buttons">
+          <button className="quick-btn" onClick={() => handleQuickSelect("day")}>Today</button>
+          <button className="quick-btn" onClick={() => handleQuickSelect("week")}>This Week</button>
+          <button className="quick-btn" onClick={() => handleQuickSelect("month")}>This Month</button>
+          <button className="quick-btn" onClick={() => handleQuickSelect("year")}>This Year</button>
+        </div>
+
+        {/* Date Range Inputs */}
         <div className="filter-row">
           <div className="filter-group">
-            <label className="filter-label">From Date</label>
+            <label className="filter-label">From Date <span className="required">*</span></label>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="filter-input"
+              disabled={loading}
             />
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">To Date</label>
+            <label className="filter-label">To Date <span className="required">*</span></label>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="filter-input"
+              disabled={loading}
             />
           </div>
 
           <div className="filter-actions">
-            <button className="btn-primary">Apply Filters</button>
-            <button className="btn-secondary">Reset</button>
+            <button 
+              className="btn-primary" 
+              onClick={handleGenerateReport}
+              disabled={fromDate === "" || toDate === "" || loading}
+            >
+              {loading ? "Loading..." : "Generate Report"}
+            </button>
+            <button 
+              className="btn-secondary" 
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+                setShowReport(false);
+                setReportData(null);
+                setError(null);
+              }}
+              disabled={loading}
+            >
+              Reset
+            </button>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            marginTop: "12px",
+            padding: "12px",
+            backgroundColor: "#ffebee",
+            color: "#c62828",
+            borderRadius: "4px",
+            fontSize: "14px"
+          }}>
+            {error}
+          </div>
+        )}
       </div>
 
       {/* ACTION BUTTONS */}
-      <div className="purchase-actions">
-        <button className="btn-view-report" onClick={() => setShowReport(!showReport)}>
-          {showReport ? "Hide Report" : "View Report"}
-        </button>
-        <button className="btn-export" onClick={handleExportExcel}>
-          <AppIcon name="exportExcel" /> Export Excel
-        </button>
-        <button className="btn-export" onClick={handleExportPDF}>
-          <AppIcon name="exportPdf" /> Export PDF
-        </button>
-        <button className="btn-export" onClick={handleShareToCA}>
-          Share to CA
-        </button>
-      </div>
+      {showReport && reportData && (
+        <div className="purchase-actions">
+          <button className="btn-export" onClick={handleExportPDF} disabled={loading}>
+            <AppIcon name="exportPdf" /> Export PDF
+          </button>
+          <button className="btn-export" onClick={handleExportExcel} disabled={loading}>
+            <AppIcon name="exportExcel" /> Export Excel
+          </button>
+        </div>
+      )}
 
-      {/* TABS */}
-      <div className="purchase-tabs">
-        <button
-          className={`tab-button ${activeTab === "table" ? "active" : ""}`}
-          onClick={() => setActiveTab("table")}
-        >
-          <AppIcon name="table" /> Table View
-        </button>
-        <button
-          className={`tab-button ${activeTab === "summary" ? "active" : ""}`}
-          onClick={() => setActiveTab("summary")}
-        >
-          <AppIcon name="chart" /> Summary
-        </button>
-      </div>
+      {/* REPORT VIEW */}
+      {showReport && reportData && (
+        <div className="report-wrapper" ref={reportRef}>
+          {/* REPORT HEADER */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            borderBottom: "2px solid #1a3a52",
+            minHeight: "120px"
+          }}>
+            {/* Company Info (Left) */}
+            <div style={{ padding: "20px" }}>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "bold", color: "#1a3a52" }}>
+                {businessDetails.name}
+              </h3>
+              <p style={{ margin: "4px 0", fontSize: "12px", color: "#666", lineHeight: "1.4" }}>
+                {businessDetails.addressLine1}<br/>
+                {businessDetails.city}, {businessDetails.state}, {businessDetails.country}<br/>
+                GSTIN: {businessDetails.gstin}
+              </p>
+            </div>
+            {/* Title (Right) */}
+            <div style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <h1 style={{ margin: "0", fontSize: "35px", fontWeight: "bold", color: "#0066cc", letterSpacing: "2px" }}>
+                PURCHASE SUMMARY
+              </h1>
+            </div>
+          </div>
 
-      {/* TABLE VIEW */}
-      {activeTab === "table" && (
-        <div className="purchase-table-card">
-          <div className="table-responsive">
-            <table className="purchase-table">
+          {/* REPORT TABLE */}
+          <div className="report-table-wrapper" style={{ marginTop: "30px" }}>
+            <table className="purchase-report-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Invoice No</th>
-                  <th>Supplier</th>
-                  <th className="col-items">Items</th>
-                  <th className="col-amount">Total Amount</th>
-                  <th className="col-gst">GST</th>
+                  <th>Invoice Number</th>
+                  <th>Invoice Date</th>
+                  <th>Supplier Name</th>
+                  <th>Supplier GSTIN</th>
+                  <th>Discount</th>
+                  <th>Taxable Value</th>
+                  <th>GST Amount</th>
+                  <th>Invoice Total</th>
                 </tr>
               </thead>
               <tbody>
-                {purchaseData.map((row) => (
-                  <tr key={row.id}>
-                    <td className="td-date">{row.date}</td>
-                    <td className="td-invoice">{row.invoiceNo}</td>
-                    <td className="td-supplier">{row.supplier}</td>
-                    <td className="td-items">
-                      <span className="badge-items">{row.items}</span>
-                    </td>
-                    <td className="td-amount">₹{row.totalAmount.toLocaleString()}</td>
-                    <td className="td-gst">₹{row.gst.toLocaleString()}</td>
+                {reportData.rows && reportData.rows.map((row, index) => (
+                  <tr key={index}>
+                    <td>{row.invoiceNo}</td>
+                    <td>{formatDate(row.invoiceDate)}</td>
+                    <td>{row.supplierName}</td>
+                    <td>{row.supplierGSTIN || "N/A"}</td>
+                    <td className="amount">₹{Number(row.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.taxableValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.gst).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* TABLE FOOTER */}
-          <div className="table-footer">
-            <div className="footer-stat">
-              <span className="footer-label">Total Records:</span>
-              <span className="footer-value">{totalInvoices}</span>
+          {/* SUMMARY */}
+          <div className="report-summary">
+            <div className="summary-item">
+              <span className="summary-label">Total Invoices:</span>
+              <span className="summary-value">{reportData.totalInvoices}</span>
             </div>
-            <div className="footer-stat">
-              <span className="footer-label">Total Amount:</span>
-              <span className="footer-value">₹{totalAmount.toLocaleString()}</span>
+            <div className="summary-item">
+              <span className="summary-label">Total Discount:</span>
+              <span className="summary-value">₹{Number(reportData.totalDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-            <div className="footer-stat">
-              <span className="footer-label">Total GST:</span>
-              <span className="footer-value">₹{totalGST.toLocaleString()}</span>
+            <div className="summary-item">
+              <span className="summary-label">Total Taxable Value:</span>
+              <span className="summary-value">₹{Number(reportData.totalTaxableValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* SUMMARY VIEW */}
-      {activeTab === "summary" && (
-        <div className="purchase-summary-view">
-          <div className="summary-stat">
-            <h3>Period Summary</h3>
-            <div className="stat-rows">
-              <div className="stat-row">
-                <span>Number of Invoices:</span>
-                <strong>{totalInvoices}</strong>
-              </div>
-              <div className="stat-row">
-                <span>Total Purchase Amount:</span>
-                <strong>₹{totalAmount.toLocaleString()}</strong>
-              </div>
-              <div className="stat-row">
-                <span>Total GST Paid:</span>
-                <strong>₹{totalGST.toLocaleString()}</strong>
-              </div>
-              <div className="stat-row">
-                <span>Average Invoice Value:</span>
-                <strong>₹{Math.round(totalAmount / totalInvoices).toLocaleString()}</strong>
-              </div>
+            <div className="summary-item">
+              <span className="summary-label">Total GST:</span>
+              <span className="summary-value">₹{Number(reportData.totalGST).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-          </div>
-
-          <div className="summary-stat">
-            <h3>Supplier Summary</h3>
-            <div className="stat-rows">
-              {[...new Set(purchaseData.map((item) => item.supplier))].map((supplier) => {
-                const supplierTotal = purchaseData
-                  .filter((item) => item.supplier === supplier)
-                  .reduce((sum, item) => sum + item.totalAmount, 0);
-                return (
-                  <div key={supplier} className="stat-row">
-                    <span>{supplier}</span>
-                    <strong>₹{supplierTotal.toLocaleString()}</strong>
-                  </div>
-                );
-              })}
+            <div className="summary-item grand-total">
+              <span className="summary-label">Grand Total:</span>
+              <span className="summary-value">₹{Number(reportData.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========== BUSINESS REPORT VIEW (READ-ONLY) ========== */}
-      {showReport && (
-        <div className="report-container">
-          {/* REPORT HEADER */}
-          <div className="report-header">
-            <div className="report-header-content">
-              <h1 className="report-title">Purchase Report</h1>
-              <p className="report-business-name">{businessDetails.name}</p>
-              <p className="report-business-gstin">GSTIN: {businessDetails.gstin}</p>
-              <p className="report-address">{businessDetails.address}</p>
-            </div>
-            <div className="report-meta">
-              <p className="report-generated">Report Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-              {fromDate && toDate && (
-                <p className="report-period">Period: {fromDate} to {toDate}</p>
-              )}
-            </div>
-          </div>
-
-          {/* REPORT SUMMARY CARDS */}
-          <div className="report-summary-cards">
-            <div className="report-card">
-              <div className="report-card-label">No. of Purchases</div>
-              <div className="report-card-value">{totalInvoices}</div>
-            </div>
-            
-            <div className="report-card">
-              <div className="report-card-label">Total Purchase Value (Before Tax)</div>
-              <div className="report-card-value">₹{totalTaxableValue.toLocaleString()}</div>
-            </div>
-            
-            {isGSTEnabled && (
-              <div className="report-card">
-                <div className="report-card-label">Total GST on Purchases</div>
-                <div className="report-card-value">₹{totalGST.toLocaleString()}</div>
-              </div>
-            )}
-            
-            <div className="report-card">
-              <div className="report-card-label">Total Purchase Amount (Gross)</div>
-              <div className="report-card-value">₹{totalAmount.toLocaleString()}</div>
-            </div>
-          </div>
-
-          {/* REPORT TABS */}
-          <div className="report-tabs">
-            <button
-              className={`report-tab-button ${reportActiveTab === "details" ? "active" : ""}`}
-              onClick={() => setReportActiveTab("details")}
-            >
-              <AppIcon name="clipboard" /> Purchase Details
-            </button>
-            <button
-              className={`report-tab-button ${reportActiveTab === "itemwise" ? "active" : ""}`}
-              onClick={() => setReportActiveTab("itemwise")}
-            >
-              <AppIcon name="inventory" /> Item-wise Summary
-            </button>
-          </div>
-
-          {/* PURCHASE DETAILS TAB */}
-          {reportActiveTab === "details" && (
-            <div className="report-table-section">
-              <h2 className="report-section-title">Purchase Details</h2>
-              <div className="report-table-wrapper">
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>Purchase Date</th>
-                      <th>Supplier Name</th>
-                      {isGSTEnabled && <th>Supplier GSTIN</th>}
-                      <th>Invoice No.</th>
-                      <th>Taxable Value</th>
-                      {isGSTEnabled && <th>GST Amount</th>}
-                      <th>Purchase Total</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchaseData.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.date}</td>
-                        <td>{row.supplier}</td>
-                        {isGSTEnabled && <td>{row.supplierGSTIN}</td>}
-                        <td><strong>{row.invoiceNo}</strong></td>
-                        <td className="amount">₹{row.taxableValue.toLocaleString()}</td>
-                        {isGSTEnabled && <td className="amount">₹{row.gst.toLocaleString()}</td>}
-                        <td className="amount"><strong>₹{row.totalAmount.toLocaleString()}</strong></td>
-                        <td>
-                          <span className={`status-badge status-${row.status.toLowerCase()}`}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* TABLE SUMMARY */}
-              <div className="report-table-summary">
-                <div className="summary-row">
-                  <span className="summary-label">Total Purchases:</span>
-                  <span className="summary-value">{totalInvoices}</span>
-                </div>
-                <div className="summary-row">
-                  <span className="summary-label">Total Taxable Value:</span>
-                  <span className="summary-value">₹{totalTaxableValue.toLocaleString()}</span>
-                </div>
-                {isGSTEnabled && (
-                  <div className="summary-row">
-                    <span className="summary-label">Total GST:</span>
-                    <span className="summary-value">₹{totalGST.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="summary-row grand-total">
-                  <span className="summary-label">Grand Total:</span>
-                  <span className="summary-value">₹{totalAmount.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ITEM-WISE SUMMARY TAB */}
-          {reportActiveTab === "itemwise" && (
-            <div className="report-table-section">
-              <h2 className="report-section-title">Item-wise Purchase Summary</h2>
-              <div className="report-table-wrapper">
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>Item Name</th>
-                      <th>Qty Purchased</th>
-                      <th>Unit</th>
-                      <th>Taxable Value</th>
-                      {isGSTEnabled && <th>GST</th>}
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {itemWiseSummary.map((item, index) => (
-                      <tr key={index}>
-                        <td><strong>{item.name}</strong></td>
-                        <td className="quantity">{item.totalQty}</td>
-                        <td>{item.unit}</td>
-                        <td className="amount">₹{item.totalTaxableValue.toLocaleString()}</td>
-                        {isGSTEnabled && <td className="amount">₹{item.totalGST.toLocaleString()}</td>}
-                        <td className="amount"><strong>₹{(item.totalTaxableValue + item.totalGST).toLocaleString()}</strong></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* ITEM-WISE SUMMARY */}
-              <div className="report-table-summary">
-                <div className="summary-row">
-                  <span className="summary-label">Total Taxable Value:</span>
-                  <span className="summary-value">₹{totalTaxableValue.toLocaleString()}</span>
-                </div>
-                {isGSTEnabled && (
-                  <div className="summary-row">
-                    <span className="summary-label">Total GST:</span>
-                    <span className="summary-value">₹{totalGST.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="summary-row grand-total">
-                  <span className="summary-label">Grand Total:</span>
-                  <span className="summary-value">₹{totalAmount.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* REPORT FOOTER */}
-          <div className="report-footer">
-            <p>This is a read-only report. Please verify the data before exporting.</p>
-            <p className="report-footer-date">Printed: {new Date().toLocaleString('en-IN')}</p>
           </div>
         </div>
       )}

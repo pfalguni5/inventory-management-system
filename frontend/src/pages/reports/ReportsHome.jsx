@@ -48,7 +48,7 @@ function ReportsHome() {
     {
       title: "Sales Summary",
       description: "Total sales for selected period",
-      iconName: "money",
+      iconName: "invoice",
       path: "/app/reports/sales-summary",
     },
     {

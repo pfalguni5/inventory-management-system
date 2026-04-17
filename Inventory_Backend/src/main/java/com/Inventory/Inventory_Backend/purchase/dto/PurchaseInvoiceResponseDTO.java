@@ -48,6 +48,7 @@ public class PurchaseInvoiceResponseDTO {
     // =========================================================
 
     private BigDecimal subtotal;
+    private BigDecimal totalDiscount;
     private BigDecimal totalTax;
     private BigDecimal grandTotal;
 
@@ -55,7 +56,7 @@ public class PurchaseInvoiceResponseDTO {
     // PAYMENT
     // =========================================================
 
-    private String paymentType;   // ✅ ADDED
+    private String paymentType; // ✅ ADDED
 
     private BigDecimal amountPaid;
     private BigDecimal balance;

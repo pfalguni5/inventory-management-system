@@ -2,67 +2,17 @@ import { useState, useRef } from "react";
 import AppIcon from "../../components/common/AppIcon";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import api from "../../services/api";
 import "../../styles/sales-summary.css";
 
 function SalesSummaryReport() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [showReport, setShowReport] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const reportRef = useRef(null);
-
-  // Sample data
-  const salesData = [
-    {
-      id: 1,
-      date: "20-08-2024",
-      invoiceNo: "SI-001",
-      customer: "ABC Traders",
-      customerGSTIN: "27AABCL7890A1Z0",
-      taxableValue: 20000,
-      gst: 3600,
-      totalAmount: 23600,
-    },
-    {
-      id: 2,
-      date: "21-08-2024",
-      invoiceNo: "SI-002",
-      customer: "XYZ Stores",
-      customerGSTIN: "18AAXYZ1234B1Z0",
-      taxableValue: 15000,
-      gst: 2700,
-      totalAmount: 17700,
-    },
-    {
-      id: 3,
-      date: "22-08-2024",
-      invoiceNo: "SI-003",
-      customer: "ABC Traders",
-      customerGSTIN: "27AABCL7890A1Z0",
-      taxableValue: 26000,
-      gst: 4680,
-      totalAmount: 30680,
-    },
-    {
-      id: 4,
-      date: "23-08-2024",
-      invoiceNo: "SI-004",
-      customer: "Global Supplies",
-      customerGSTIN: "06AAPD7890K2Z0",
-      taxableValue: 18000,
-      gst: 3240,
-      totalAmount: 21240,
-    },
-    {
-      id: 5,
-      date: "24-08-2024",
-      invoiceNo: "SI-005",
-      customer: "Tech Solutions",
-      customerGSTIN: "29AAPCS6890Q1Z0",
-      taxableValue: 36000,
-      gst: 6480,
-      totalAmount: 42480,
-    },
-  ];
 
   // Business details
   const businessDetails = {
@@ -103,38 +53,6 @@ function SalesSummaryReport() {
     return { start, end };
   };
 
-  // Apply filters
-  const getFilteredSalesData = () => {
-    let filtered = [...salesData];
-
-    if (fromDate) {
-      const fromDateObj = new Date(fromDate);
-      filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.date.split("-").reverse().join("-"));
-        return saleDate >= fromDateObj;
-      });
-    }
-
-    if (toDate) {
-      const toDateObj = new Date(toDate);
-      toDateObj.setDate(toDateObj.getDate() + 1);
-      filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.date.split("-").reverse().join("-"));
-        return saleDate <= toDateObj;
-      });
-    }
-
-    return filtered;
-  };
-
-  const filteredSalesData = getFilteredSalesData();
-
-  // Calculate totals
-  const totalTaxableValue = filteredSalesData.reduce((sum, item) => sum + item.taxableValue, 0);
-  const totalGST = filteredSalesData.reduce((sum, item) => sum + item.gst, 0);
-  const totalAmount = filteredSalesData.reduce((sum, item) => sum + item.totalAmount, 0);
-  const totalInvoices = filteredSalesData.length;
-
   // Quick select buttons
   const handleQuickSelect = (range) => {
     const dateRange = getDateRange(range);
@@ -144,14 +62,42 @@ function SalesSummaryReport() {
     }
   };
 
-  // Export to PDF
-  const handleExportPDF = async () => {
+  // Fetch report data from API
+  const fetchSalesReport = async () => {
     if (fromDate === "" || toDate === "") {
-      alert("Please select both From Date and To Date to generate report");
+      setError("Please select both From Date and To Date");
       return;
     }
-    if (filteredSalesData.length === 0) {
-      alert("No data available for selected date range");
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await api.post("/reports/sales-summary", {
+        fromDate: fromDate,
+        toDate: toDate,
+      });
+
+      setReportData(response.data);
+      setShowReport(true);
+    } catch (err) {
+      console.error("Error fetching sales report:", err);
+      setError(err.response?.data?.message || "Failed to fetch sales report");
+      setShowReport(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate report on button click
+  const handleGenerateReport = () => {
+    fetchSalesReport();
+  };
+
+  // Export to PDF
+  const handleExportPDF = async () => {
+    if (!reportData || reportData.rows.length === 0) {
+      alert("No data available for export");
       return;
     }
 
@@ -196,16 +142,20 @@ function SalesSummaryReport() {
 
   // Export to Excel (placeholder for now)
   const handleExportExcel = () => {
-    if (fromDate === "" || toDate === "") {
-      alert("Please select both From Date and To Date to generate report");
-      return;
-    }
-    if (filteredSalesData.length === 0) {
-      alert("No data available for selected date range");
+    if (!reportData || reportData.rows.length === 0) {
+      alert("No data available for export");
       return;
     }
     alert("Excel export will be implemented next");
   };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
+  };
+
 
   return (
     <div className="sales-summary-container">
@@ -241,6 +191,7 @@ function SalesSummaryReport() {
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="filter-input"
+              disabled={loading}
             />
           </div>
 
@@ -251,16 +202,17 @@ function SalesSummaryReport() {
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="filter-input"
+              disabled={loading}
             />
           </div>
 
           <div className="filter-actions">
             <button 
               className="btn-primary" 
-              onClick={() => setShowReport(fromDate !== "" && toDate !== "")}
-              disabled={fromDate === "" || toDate === ""}
+              onClick={handleGenerateReport}
+              disabled={fromDate === "" || toDate === "" || loading}
             >
-              Generate Report
+              {loading ? "Loading..." : "Generate Report"}
             </button>
             <button 
               className="btn-secondary" 
@@ -268,44 +220,74 @@ function SalesSummaryReport() {
                 setFromDate("");
                 setToDate("");
                 setShowReport(false);
+                setReportData(null);
+                setError(null);
               }}
+              disabled={loading}
             >
               Reset
             </button>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            marginTop: "12px",
+            padding: "12px",
+            backgroundColor: "#ffebee",
+            color: "#c62828",
+            borderRadius: "4px",
+            fontSize: "14px"
+          }}>
+            {error}
+          </div>
+        )}
       </div>
 
       {/* ACTION BUTTONS */}
-      {showReport && (
+      {showReport && reportData && (
         <div className="sales-actions">
-          <button className="btn-export" onClick={handleExportPDF}>
+          <button className="btn-export" onClick={handleExportPDF} disabled={loading}>
             <AppIcon name="exportPdf" /> Export PDF
           </button>
-          <button className="btn-export" onClick={handleExportExcel}>
+          <button className="btn-export" onClick={handleExportExcel} disabled={loading}>
             <AppIcon name="exportExcel" /> Export Excel
           </button>
         </div>
       )}
 
       {/* REPORT VIEW */}
-      {showReport && (
+      {showReport && reportData && (
         <div className="report-wrapper" ref={reportRef}>
           {/* REPORT HEADER */}
-          <div className="report-header-section">
-            <div className="report-left">
-              <h3 className="business-name">{businessDetails.name}</h3>
-              <p className="business-detail">{businessDetails.addressLine1}</p>
-              <p className="business-detail">{businessDetails.city}, {businessDetails.state}, {businessDetails.country}</p>
-              <p className="business-detail">GSTIN: {businessDetails.gstin}</p>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            borderBottom: "2px solid #1a3a52",
+            minHeight: "120px"
+          }}>
+            {/* Company Info (Left) */}
+            <div style={{ padding: "20px" }}>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "bold", color: "#1a3a52" }}>
+                {businessDetails.name}
+              </h3>
+              <p style={{ margin: "4px 0", fontSize: "12px", color: "#666", lineHeight: "1.4" }}>
+                {businessDetails.addressLine1}<br/>
+                {businessDetails.city}, {businessDetails.state}, {businessDetails.country}<br/>
+                GSTIN: {businessDetails.gstin}
+              </p>
             </div>
-            <div className="report-right">
-              <h2 className="report-title">Sales Summary</h2>
+            {/* Title (Right) */}
+            <div style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <h1 style={{ margin: "0", fontSize: "35px", fontWeight: "bold", color: "#0066cc", letterSpacing: "2px" }}>
+                SALES SUMMARY
+              </h1>
             </div>
           </div>
 
           {/* REPORT TABLE */}
-          <div className="report-table-wrapper">
+          <div className="report-table-wrapper" style={{ marginTop: "30px" }}>
             <table className="sales-report-table">
               <thead>
                 <tr>
@@ -313,21 +295,23 @@ function SalesSummaryReport() {
                   <th>Invoice Date</th>
                   <th>Customer Name</th>
                   <th>Customer GSTIN</th>
+                  <th>Discount</th>
                   <th>Taxable Value</th>
                   <th>GST Amount</th>
                   <th>Invoice Total</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSalesData.map((row) => (
-                  <tr key={row.id}>
+                {reportData.rows && reportData.rows.map((row, index) => (
+                  <tr key={index}>
                     <td>{row.invoiceNo}</td>
-                    <td>{row.date}</td>
-                    <td>{row.customer}</td>
-                    <td>{row.customerGSTIN}</td>
-                    <td className="amount">₹{row.taxableValue.toLocaleString()}</td>
-                    <td className="amount">₹{row.gst.toLocaleString()}</td>
-                    <td className="amount">₹{row.totalAmount.toLocaleString()}</td>
+                    <td>{formatDate(row.invoiceDate)}</td>
+                    <td>{row.customerName}</td>
+                    <td>{row.customerGSTIN || "N/A"}</td>
+                    <td className="amount">₹{Number(row.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.taxableValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.gst).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="amount">₹{Number(row.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -338,19 +322,23 @@ function SalesSummaryReport() {
           <div className="report-summary">
             <div className="summary-item">
               <span className="summary-label">Total Invoices:</span>
-              <span className="summary-value">{totalInvoices}</span>
+              <span className="summary-value">{reportData.totalInvoices}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Total Discount:</span>
+              <span className="summary-value">₹{Number(reportData.totalDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Total Taxable Value:</span>
-              <span className="summary-value">₹{totalTaxableValue.toLocaleString()}</span>
+              <span className="summary-value">₹{Number(reportData.totalTaxableValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Total GST:</span>
-              <span className="summary-value">₹{totalGST.toLocaleString()}</span>
+              <span className="summary-value">₹{Number(reportData.totalGST).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="summary-item grand-total">
               <span className="summary-label">Grand Total:</span>
-              <span className="summary-value">₹{totalAmount.toLocaleString()}</span>
+              <span className="summary-value">₹{Number(reportData.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>

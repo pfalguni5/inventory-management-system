@@ -24,16 +24,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {})   // enable CORS
+                .cors(cors -> {
+                }) // enable CORS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**",
                                 "/api/auth/signup",
                                 "/api/auth/login",
                                 "api/auth/forgot-password",
                                 "/api/auth/send-otp",
-                                "/api/auth/reset-password").permitAll()  // allow auth APIs
-                        .anyRequest().authenticated()
-                )
+                                "/api/auth/reset-password")
+                        .permitAll() // allow auth APIs
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(businessFilter, com.Inventory.Inventory_Backend.auth.filter.JwtAuthFilter.class);
 
@@ -45,17 +46,18 @@ public class SecurityConfig {
         org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
 
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:3000"); // your frontend
+        config.addAllowedOrigin("http://localhost:3000"); // dev/test frontend
+        config.addAllowedOrigin("http://localhost:3001"); // alternate dev port
+        config.addAllowedOrigin("http://127.0.0.1:3000"); // localhost alias
+        config.addAllowedOrigin("http://127.0.0.1:3001"); // localhost alias
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
-        org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
-                new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {

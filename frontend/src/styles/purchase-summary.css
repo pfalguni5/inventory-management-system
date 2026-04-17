@@ -37,6 +37,36 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+/* QUICK SELECT BUTTONS */
+.quick-select-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background: #f0f4ff;
+}
+
+.required {
+  color: #d32f2f;
+}
+
 /* SUMMARY CARDS GRID */
 .purchase-summary-grid {
   display: grid;
@@ -214,6 +244,108 @@
   border-color: #667eea;
   color: #333;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* REPORT WRAPPER */
+.report-wrapper {
+  background: white;
+  border-radius: 8px;
+  padding: 50px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+  margin-top: 24px;
+}
+
+.report-table-wrapper {
+  margin-top: 30px !important;
+  overflow-x: auto;
+}
+
+/* PURCHASE REPORT TABLE STYLING */
+.purchase-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin-top: 0;
+}
+
+.purchase-report-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #d0d0d0;
+}
+
+.purchase-report-table th {
+  text-align: center;
+  padding: 16px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a202c;
+  text-transform: capitalize;
+}
+
+.purchase-report-table td {
+  padding: 14px 12px;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.purchase-report-table td.amount {
+  text-align: right;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: #1a202c;
+}
+
+.purchase-report-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+/* SUMMARY SECTION */
+.report-summary {
+  background: #f8f9fa;
+  border: 2px solid #d0d0d0;
+  border-radius: 8px;
+  padding: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.summary-item {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 16px;
+  color: #666;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 20px;
+  color: #1a202c;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.summary-item.grand-total .summary-label,
+.summary-item.grand-total .summary-value {
+  font-size: 18px;
+  color: #1a202c;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-weight: 700;
 }
 
 /* TABS */
@@ -462,49 +594,58 @@
     font-size: 24px;
   }
 
-  .summary-card {
+  .filter-row {
     flex-direction: column;
-    text-align: center;
   }
 
-  .summary-content {
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .filter-actions {
     width: 100%;
   }
 
-  .purchase-summary-grid {
-    grid-template-columns: 1fr;
+  .btn-primary,
+  .btn-secondary {
+    flex: 1;
   }
 
-  .purchase-tabs {
-    flex-wrap: wrap;
-  }
-
-  .tab-button {
-    font-size: 12px;
-    padding: 10px 16px;
-  }
-
-  .table-responsive {
-    overflow-x: auto;
-  }
-
-  .purchase-table {
-    font-size: 12px;
-  }
-
-  .purchase-table th,
-  .purchase-table td {
-    padding: 10px 8px;
-  }
-
-  .table-footer {
+  .quick-select-buttons {
     flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
   }
 
-  .purchase-summary-view {
-    grid-template-columns: 1fr;
+  .quick-btn {
+    width: 100%;
+  }
+
+  .report-summary {
+    flex-direction: column;
+    gap: 16px;
+    justify-content: flex-start;
+  }
+
+  .report-wrapper {
+    padding: 24px;
+  }
+
+  .purchase-report-table th,
+  .purchase-report-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .summary-label {
+    font-size: 14px;
+  }
+
+  .summary-value {
+    font-size: 16px;
+  }
+
+  .summary-item {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -879,27 +1020,20 @@
 }
 
 @media print {
-  .report-container {
+  .purchase-summary-container {
+    background: white;
+    padding: 0;
+  }
+
+  .purchase-filter-card,
+  .purchase-actions {
+    display: none;
+  }
+
+  .report-wrapper {
     box-shadow: none;
     border: none;
     page-break-after: always;
   }
-
-  .purchase-summary-header,
-  .purchase-summary-grid,
-  .purchase-filter-card,
-  .purchase-actions,
-  .purchase-tabs,
-  .purchase-table-card,
-  .purchase-summary-view {
-    display: none;
-  }
-
-  .report-table tbody tr:nth-child(even) {
-    background-color: transparent;
-  }
-
-  .report-table tbody tr:hover {
-    background-color: transparent;
-  }
 }
+

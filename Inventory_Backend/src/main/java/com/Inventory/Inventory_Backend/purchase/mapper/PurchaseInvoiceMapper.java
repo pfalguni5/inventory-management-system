@@ -96,6 +96,7 @@ public class PurchaseInvoiceMapper {
                                 .dueDate(entity.getDueDate())
 
                                 .subtotal(entity.getSubtotal())
+                                .totalDiscount(entity.getTotalDiscount())
                                 .totalTax(entity.getTotalTax())
                                 .grandTotal(entity.getGrandTotal())
 

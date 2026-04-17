@@ -15,15 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(
-        name = "purchase_invoices",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uq_business_bill_number",
-                        columnNames = {"business_id", "bill_number"}
-                )
-        }
-)
+@Table(name = "purchase_invoices", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_business_bill_number", columnNames = { "business_id", "bill_number" })
+})
 @SQLDelete(sql = "UPDATE purchase_invoices SET is_deleted = true WHERE id = ?")
 @Where(clause = "is_deleted = false")
 @Getter
@@ -31,7 +25,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"items", "party"})
+@ToString(exclude = { "items", "party" })
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PurchaseInvoice {
 
@@ -89,6 +83,10 @@ public class PurchaseInvoice {
     private BigDecimal totalTax = BigDecimal.ZERO;
 
     @Builder.Default
+    @Column(name = "total_discount", precision = 15, scale = 2)
+    private BigDecimal totalDiscount = BigDecimal.ZERO;
+
+    @Builder.Default
     @Column(name = "grand_total", precision = 15, scale = 2)
     private BigDecimal grandTotal = BigDecimal.ZERO;
 
@@ -131,21 +129,11 @@ public class PurchaseInvoice {
     // =========================================================
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "party_id",
-            insertable = false,
-            updatable = false,
-            foreignKey = @ForeignKey(name = "fk_pi_party")
-    )
+    @JoinColumn(name = "party_id", insertable = false, updatable = false, foreignKey = @ForeignKey(name = "fk_pi_party"))
     private Party party;
 
     @Builder.Default
-    @OneToMany(
-            mappedBy = "purchaseInvoice",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
+    @OneToMany(mappedBy = "purchaseInvoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PurchaseInvoiceItem> items = new ArrayList<>();
 
     // =========================================================
@@ -154,7 +142,8 @@ public class PurchaseInvoice {
 
     public void addItem(PurchaseInvoiceItem item) {
 
-        if (item == null) return;
+        if (item == null)
+            return;
 
         items.add(item);
         item.setPurchaseInvoice(this);
@@ -166,7 +155,8 @@ public class PurchaseInvoice {
 
     public void removeItem(PurchaseInvoiceItem item) {
 
-        if (item == null) return;
+        if (item == null)
+            return;
 
         items.remove(item);
         item.setPurchaseInvoice(null);

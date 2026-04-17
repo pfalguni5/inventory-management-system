@@ -310,6 +310,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         BigDecimal grandTotal = subtotal.add(totalTax);
 
         invoice.setSubtotal(subtotal);
+        invoice.setTotalDiscount(totalDiscount);
         invoice.setTotalTax(totalTax);
         invoice.setGrandTotal(grandTotal);
         invoice.setAmountPaid(
